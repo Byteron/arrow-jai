@@ -2,7 +2,9 @@
 #import "Hash_Table";
 #import "Compiler";
 
-entities: Entities;
+entities: [..]EntityMeta;
+unused_ids: [..]u32;
+storages: Table(*Type_Info, *void);
 
 Entity :: struct {
 	id: u32 = 0;
@@ -20,21 +22,13 @@ Storage :: struct ($T: Type) {
     items: [..]T;
 }
 
-Entities :: struct {
-	entities: [..]EntityMeta;
-	unused_ids: [..]u32;
-	types: Table(int, int);
-	storages: [..]*void;
-}
-
 Query :: struct {
 	entities: [..]Entity;
 }
 
 init_ecs :: () {
-	entities = .{};
-	init(*entities.types, 32);
-	array_add(*entities.storages, new_void_storage(Entity));
+	init(*storages, 32);
+	register(Entity);
 }
 
 deinit_ecs :: () {
@@ -42,23 +36,26 @@ deinit_ecs :: () {
 }
 
 register :: ($T: Type) {
-	using entities;
-	key := cast(int) T;
-    existing, found := table_find(*types, key);
+	key := cast(*Type_Info) T;
+    storage, found := table_find(*storages, key);
     assert(!found);
-    existing = types.count;
-    table_add(*types, key, existing);
-	array_add(*storages, new_void_storage(T));
+    table_add(*storages, key, new_storage(T));
 }
 
-new_void_storage :: ($T: Type) -> *void {
+get_storage :: ($T: Type) -> *Storage(T) {
+    key := cast(*Type_Info) T;
+    existing, found := table_find(*storages, key);
+    assert(found);
+	return cast(*Storage(T))existing;
+}
+
+new_storage :: ($T: Type) -> *void {
 	storage := New(Storage(T));
 	storage.indices = NewArray(1, u32);
 	return cast(*void)storage;
 }
 
 spawn :: () -> Entity {
-	using entities;
 	id: u32;
 	
 	if (unused_ids.count == 0) {
@@ -73,13 +70,14 @@ spawn :: () -> Entity {
 
 	entity := Entity.{ id = id, gen = cast(u16) meta.gen };
 
-	storage := cast(*Storage(Entity))storages[0];
+	storage := get_storage(Entity);
+	set(storage, entity, entity);
+
 	// array
 	return entity;
 }
 
 despawn :: (entity: Entity) {
-	using entities;
 	meta := *entities[entity.id];
 	meta.gen = -meta.gen;
 	array_add(*unused_ids, entity.id);
@@ -88,7 +86,6 @@ despawn :: (entity: Entity) {
 }
 
 is_alive :: (entity: Entity) -> bool {
-	using entities;
 	return entities[entity.id].gen == entity.gen;
 }
 
@@ -108,9 +105,7 @@ set :: (using s: *Storage($T), entity: Entity, component: T) {
 }
 
 set :: (entity: Entity, component: $T) {
-	using entities;
-	type_id := get_type_id(T);
-	storage := cast(*Storage(T)) storages[type_id];
+	storage := get_storage(T);
 	set(storage, entity, component);
 }
 
@@ -119,18 +114,8 @@ get :: (using s: *Storage($T), entity: Entity) -> *T {
 }
 
 get :: (entity: Entity, $T: Type) -> *T {
-	using entities;
-	type_id := get_type_id(T);
-	storage := cast(*Storage(T)) storages[type_id];
+	storage := get_storage(T);
 	return get(storage, entity);
-}
-
-get_type_id :: (T: Type) -> int {
-	using entities;
-    key := cast(int) T;
-    existing, found := table_find(*types, key);
-    assert(found);
-	return existing;
 }
 
 // get :: (using s: *Storage($T), entity: Entity) -> T {
