@@ -33,17 +33,21 @@ Sprite :: struct {
 }
 
 main :: () {
-    world := new_world();
+    init_ecs();
+    defer deinit_ecs();
 
-    e1 := spawn(*world);
-    e2 := spawn(*world);
+    register(Position);
+    register(Sprite);
+
+    e1 := spawn();
+    e2 := spawn();
 
     print("%. %\n", e1, e2);
 
-    set(*world, e1, Position.{5, 10});
-    set(*world, e1, Sprite.{ texture = null });
+    set(e1, Position.{5, 10});
+    set(e1, Sprite.{ texture = null });
 
-    pos := get(*world, e1, Position);
+    pos := get(e1, Position);
 
     print("Pos: %\n", <<pos);
 

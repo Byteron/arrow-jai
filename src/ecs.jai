@@ -2,13 +2,14 @@
 #import "Hash_Table";
 #import "Compiler";
 
+entities: Entities;
+
 Entity :: struct {
 	id: u32 = 0;
 	gen: u32 = 0;
 }
 
 Component :: struct {};
-System :: (*World);
 
 EntityMeta :: struct {
 	gen: s32 = 0;
@@ -30,15 +31,24 @@ Query :: struct {
 	entities: [..]Entity;
 }
 
-World :: struct {
-	entities: Entities = .{};
-}
-
-new_world :: () -> World {
-	using world := World.{};
+init_ecs :: () {
+	entities = .{};
 	init(*entities.types, 32);
 	array_add(*entities.storages, new_void_storage(Entity));
-	return world;
+}
+
+deinit_ecs :: () {
+	// TODO: deinit world here;
+}
+
+register :: ($T: Type) {
+	using entities;
+	key := cast(int) T;
+    existing, found := table_find(*types, key);
+    assert(!found);
+    existing = types.count;
+    table_add(*types, key, existing);
+	array_add(*storages, new_void_storage(T));
 }
 
 new_void_storage :: ($T: Type) -> *void {
@@ -47,40 +57,34 @@ new_void_storage :: ($T: Type) -> *void {
 	return cast(*void)storage;
 }
 
-spawn :: (world: *World) -> Entity {
-	spawn :: (using e: *Entities) -> Entity {
-		id: u32;
-		
-		if (unused_ids.count == 0) {
-			id = cast(u32) entities.count;
-			array_add(*entities, .{});
-		} else {
-			id = pop(*unused_ids);
-		}
-
-		meta := *entities[id];
-		meta.gen = -meta.gen + 1;
-
-		entity := Entity.{ id = id, gen = cast(u16) meta.gen };
-
-		storage := cast(*Storage(Entity))storages[0];
-		// array
-		return entity;
+spawn :: () -> Entity {
+	using entities;
+	id: u32;
+	
+	if (unused_ids.count == 0) {
+		id = cast(u32) entities.count;
+		array_add(*entities, .{});
+	} else {
+		id = pop(*unused_ids);
 	}
 
-	return spawn(*world.entities);
+	meta := *entities[id];
+	meta.gen = -meta.gen + 1;
+
+	entity := Entity.{ id = id, gen = cast(u16) meta.gen };
+
+	storage := cast(*Storage(Entity))storages[0];
+	// array
+	return entity;
 }
 
-despawn :: (world: *World, entity: Entity) {
-	despawn :: (using e: *Entities, entity: Entity) {
-		meta := *entities[entity.id];
-		meta.gen = -meta.gen;
-		array_add(*unused_ids, entity.id);
+despawn :: (entity: Entity) {
+	using entities;
+	meta := *entities[entity.id];
+	meta.gen = -meta.gen;
+	array_add(*unused_ids, entity.id);
 
-		// TODO: remove all components
-	}
-
-	despawn(*world.entities, entity);
+	// TODO: remove all components
 }
 
 set :: (using s: *Storage($T), entity: Entity, component: T) {
@@ -98,38 +102,30 @@ set :: (using s: *Storage($T), entity: Entity, component: T) {
 	}
 }
 
-set :: (world: *World, entity: Entity, component: $T) {
-	set :: (using e: *Entities, entity: Entity, component: $T) {
-		type_id := get_type_id(e, T);
-		storage := cast(*Storage(T)) storages[type_id];
-		set(storage, entity, component);
-	}
-
-	set(*world.entities, entity, component);
+set :: (entity: Entity, component: $T) {
+	using entities;
+	type_id := get_type_id(T);
+	storage := cast(*Storage(T)) storages[type_id];
+	set(storage, entity, component);
 }
 
 get :: (using s: *Storage($T), entity: Entity) -> *T {
 	return *items[indices[entity.id]-1];
 }
 
-get :: (world: *World, entity: Entity, $T: Type) -> *T {
-	get :: (using e: *Entities, entity: Entity, $T: Type) -> *T {
-		type_id := get_type_id(e, T);
-		storage := cast(*Storage(T)) storages[type_id];
-		return get(storage, entity);
-	}
-
-	return get(*world.entities, entity, T);
+get :: (entity: Entity, $T: Type) -> *T {
+	using entities;
+	type_id := get_type_id(T);
+	storage := cast(*Storage(T)) storages[type_id];
+	return get(storage, entity);
 }
 
-get_type_id :: (using e: *Entities, $T: Type) -> int {
+get_type_id :: (T: Type) -> int {
+	using entities;
     key := cast(int) T;
     existing, found := table_find(*types, key);
-    if found then return existing;
-    existing = types.count;
-    table_add(*types, key, existing);
-	array_add(*storages, new_void_storage(T));
-    return existing;
+    assert(found);
+	return existing;
 }
 
 // get :: (using s: *Storage($T), entity: Entity) -> T {
