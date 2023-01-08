@@ -6,7 +6,7 @@ entities: Entities;
 
 Entity :: struct {
 	id: u32 = 0;
-	gen: u32 = 0;
+	gen: u16 = 0;
 }
 
 Component :: struct {};
@@ -85,6 +85,11 @@ despawn :: (entity: Entity) {
 	array_add(*unused_ids, entity.id);
 
 	// TODO: remove all components
+}
+
+is_alive :: (entity: Entity) -> bool {
+	using entities;
+	return entities[entity.id].gen == entity.gen;
 }
 
 set :: (using s: *Storage($T), entity: Entity, component: T) {

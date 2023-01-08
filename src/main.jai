@@ -42,7 +42,11 @@ main :: () {
     e1 := spawn();
     e2 := spawn();
 
-    print("%. %\n", e1, e2);
+    print("% (%). % (%)\n", e1, is_alive(e1), e2, is_alive(e2));
+
+    despawn(e2);
+    
+    print("% (%). % (%)\n", e1, is_alive(e1), e2, is_alive(e2));
 
     set(e1, Position.{5, 10});
     set(e1, Sprite.{ texture = null });
