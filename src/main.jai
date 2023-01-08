@@ -33,22 +33,6 @@ Sprite :: struct {
 }
 
 main :: () {
-    width := cast(int) (WINDOW_WIDTH * WINDOW_SCALE);
-    height := cast(int) (WINDOW_HEIGHT * WINDOW_SCALE);
-
-    window := create_window(window_name = "One Arrow Colosseum", width = width, height = height);
-    set_render_target(window);
-
-    window_width, window_height := get_render_dimensions(window);
-
-    // texture: Texture;
-    // success := load_texture(*texture, "assets/images/arrow.png");
-    // assert(success);
-
-    // a1 := Arrow.{position = Vector2.{100, 200}, texture = *texture};
-    // a2 := Arrow.{position = Vector2.{300, 100}, texture = *texture};
-    // a3 := Arrow.{position = Vector2.{500, 300}, texture = *texture};
-
     world := new_world();
 
     e1 := spawn(*world);
@@ -63,33 +47,49 @@ main :: () {
 
     print("Pos: %\n", <<pos);
 
-    quit := false;
-    time := get_time();
+    // width := cast(int) (WINDOW_WIDTH * WINDOW_SCALE);
+    // height := cast(int) (WINDOW_HEIGHT * WINDOW_SCALE);
 
-    while (!quit) {
-        update_window_events();
+    // window := create_window(window_name = "One Arrow Colosseum", width = width, height = height);
+    // set_render_target(window);
 
-        for events_this_frame {
-            if it.type == {
-                case .QUIT; quit = true;
-                case .KEYBOARD;
-                    if it.key_pressed && it.key_code == .ESCAPE {
-                        quit = true;
-                    }
+    // window_width, window_height := get_render_dimensions(window);
 
-            }
-        }
+    // texture: Texture;
+    // success := load_texture(*texture, "assets/images/arrow.png");
+    // assert(success);
 
-        clear_render_target(0.15, 0.08, 0.08, 1.0);
+    // a1 := Arrow.{position = Vector2.{100, 200}, texture = *texture};
+    // a2 := Arrow.{position = Vector2.{300, 100}, texture = *texture};
+    // a3 := Arrow.{position = Vector2.{500, 300}, texture = *texture};
 
-        new_time := get_time();
-        delta := cast(f32) (new_time - time);
-        time = new_time;
+    // quit := false;
+    // time := get_time();
+
+    // while (!quit) {
+    //     update_window_events();
+
+    //     for events_this_frame {
+    //         if it.type == {
+    //             case .QUIT; quit = true;
+    //             case .KEYBOARD;
+    //                 if it.key_pressed && it.key_code == .ESCAPE {
+    //                     quit = true;
+    //                 }
+
+    //         }
+    //     }
+
+    //     clear_render_target(0.15, 0.08, 0.08, 1.0);
+
+    //     new_time := get_time();
+    //     delta := cast(f32) (new_time - time);
+    //     time = new_time;
         
-        swap_buffers(window);
+    //     swap_buffers(window);
         
-        // print("FPS: %, s: %\n", 1.0 / delta , delta);
-    }
+    //     print("FPS: %, s: %\n", 1.0 / delta , delta);
+    // }
 }
 
 render_sprite :: (position: Vector2, using sprite: *Sprite) {
