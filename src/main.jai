@@ -132,8 +132,6 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
         width := texture.width / h_frames;
         height := texture.height / v_frames;
 
-        log("Width: %, Height: %", width, height);
-
         frame_x := frame % h_frames;
         frame_y := frame / h_frames;
         
@@ -141,13 +139,9 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
         pos_y := frame_y * height;
         end_x := pos_x + width;
         end_y := pos_y + height;
-        
-        log("Frame X: %, Frame Y: %", frame_x, frame_y);
 
         texel_x := cast(float)width / texture.width;
         texel_y := cast(float)height / texture.height;
-
-        log("Texel X: %, Texel Y: %", texel_x, texel_y);
 
         x0 := cast(float)pos_x / texture.width;
         y0 := cast(float)pos_y / texture.height;
@@ -158,8 +152,6 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
         uv1 = Vector2.{x1, y0};
         uv2 = Vector2.{x1, y1};
         uv3 = Vector2.{x0, y1};
-
-        log("UVs: %, %, %, %", uv0, uv1, uv2, uv3);
         
     }
 
