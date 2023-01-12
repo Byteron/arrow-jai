@@ -8,8 +8,6 @@
 #import "Input";
 #import "Hash_Table";
 
-#load "ecs.jai";
-
 f32 :: float32;
 f64 :: float64;
 
@@ -33,74 +31,49 @@ Sprite :: struct {
 }
 
 main :: () {
-    init_ecs();
-    defer deinit_ecs();
+    width := cast(int) (WINDOW_WIDTH * WINDOW_SCALE);
+    height := cast(int) (WINDOW_HEIGHT * WINDOW_SCALE);
 
-    register(Position);
-    register(Sprite);
+    window := create_window(window_name = "One Arrow Colosseum", width = width, height = height);
+    set_render_target(window);
 
-    query : Query(Position, Sprite);
-    print("%\n", query);
+    window_width, window_height := get_render_dimensions(window);
 
-    e1 := spawn();
-    e2 := spawn();
+    texture: Texture;
+    success := load_texture(*texture, "assets/images/arrow.png");
+    assert(success);
 
-    print("% (%). % (%)\n", e1, is_alive(e1), e2, is_alive(e2));
+    a1 := Arrow.{position = Vector2.{100, 200}, texture = *texture};
+    a2 := Arrow.{position = Vector2.{300, 100}, texture = *texture};
+    a3 := Arrow.{position = Vector2.{500, 300}, texture = *texture};
 
-    despawn(e2);
-    
-    print("% (%). % (%)\n", e1, is_alive(e1), e2, is_alive(e2));
+    quit := false;
+    time := get_time();
 
-    set(e1, Position.{5, 10});
-    set(e1, Sprite.{ texture = null });
+    while (!quit) {
+        update_window_events();
 
-    pos := get(e1, Position);
+        for events_this_frame {
+            if it.type == {
+                case .QUIT; quit = true;
+                case .KEYBOARD;
+                    if it.key_pressed && it.key_code == .ESCAPE {
+                        quit = true;
+                    }
 
-    print("Pos: %\n", <<pos);
+            }
+        }
 
-    // width := cast(int) (WINDOW_WIDTH * WINDOW_SCALE);
-    // height := cast(int) (WINDOW_HEIGHT * WINDOW_SCALE);
+        clear_render_target(0.15, 0.08, 0.08, 1.0);
 
-    // window := create_window(window_name = "One Arrow Colosseum", width = width, height = height);
-    // set_render_target(window);
-
-    // window_width, window_height := get_render_dimensions(window);
-
-    // texture: Texture;
-    // success := load_texture(*texture, "assets/images/arrow.png");
-    // assert(success);
-
-    // a1 := Arrow.{position = Vector2.{100, 200}, texture = *texture};
-    // a2 := Arrow.{position = Vector2.{300, 100}, texture = *texture};
-    // a3 := Arrow.{position = Vector2.{500, 300}, texture = *texture};
-
-    // quit := false;
-    // time := get_time();
-
-    // while (!quit) {
-    //     update_window_events();
-
-    //     for events_this_frame {
-    //         if it.type == {
-    //             case .QUIT; quit = true;
-    //             case .KEYBOARD;
-    //                 if it.key_pressed && it.key_code == .ESCAPE {
-    //                     quit = true;
-    //                 }
-
-    //         }
-    //     }
-
-    //     clear_render_target(0.15, 0.08, 0.08, 1.0);
-
-    //     new_time := get_time();
-    //     delta := cast(f32) (new_time - time);
-    //     time = new_time;
+        new_time := get_time();
+        delta := cast(f32) (new_time - time);
+        time = new_time;
         
-    //     swap_buffers(window);
+        swap_buffers(window);
         
-    //     print("FPS: %, s: %\n", 1.0 / delta , delta);
-    // }
+        print("FPS: %, s: %\n", 1.0 / delta , delta);
+    }
 }
 
 render_sprite :: (position: Vector2, using sprite: *Sprite) {
