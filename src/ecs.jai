@@ -11,8 +11,6 @@ Entity :: struct {
 	gen: u16 = 0;
 }
 
-Component :: struct {};
-
 EntityMeta :: struct {
 	gen: s32 = 0;
 }
@@ -22,8 +20,41 @@ Storage :: struct ($T: Type) {
     items: [..]T;
 }
 
-Query :: struct {
+Query :: struct ($types: ..Type) {
 	entities: [..]Entity;
+	#insert -> string {
+		builder: String_Builder;
+		for types print_to_builder(*builder, "storage%: []%;\n", it_index+1, it);
+		return builder_to_string(*builder);
+	}
+}
+
+query :: ($types: ..Type) -> Query { 
+	q: Query(..types) = .{};
+	for e: entities {
+		if has(e)
+	}
+}
+
+for_expansion :: (query: Query, body: Code, flags: For_Flags) #expand {
+	for entity: query.entities {
+		#insert -> string {
+			builder: String_Builder;
+			info := cast(*Type_Info) type_of(query);
+			print("%\n", info);
+			for types {
+				print_to_builder(*builder, "storage%: []%;\n", it_index+1, it);
+			}
+			
+			s := builder_to_string(*builder);
+			print(s);
+			return "";
+			// return builder_to_string(*builder);
+		}
+		`entity := entity;
+
+		#insert body;
+	}
 }
 
 init_ecs :: () {
@@ -116,6 +147,15 @@ get :: (using s: *Storage($T), entity: Entity) -> *T {
 get :: (entity: Entity, $T: Type) -> *T {
 	storage := get_storage(T);
 	return get(storage, entity);
+}
+
+has :: (using s: *Storage, entity: Entity, $T: Type) -> bool {
+	return entities[entity.id] != 0;
+}
+
+has :: (entity: Entity, $T: Type) -> bool {
+	storage := get_storage(T);'
+	return has(storage, entity, T);
 }
 
 // get :: (using s: *Storage($T), entity: Entity) -> T {

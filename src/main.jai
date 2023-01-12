@@ -39,6 +39,9 @@ main :: () {
     register(Position);
     register(Sprite);
 
+    query : Query(Position, Sprite);
+    print("%\n", query);
+
     e1 := spawn();
     e2 := spawn();
 
