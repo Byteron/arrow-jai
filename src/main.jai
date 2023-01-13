@@ -6,6 +6,7 @@
 #import "GL";
 #import "Simp";
 #import "Input";
+#import "Random";
 
 f32 :: float32;
 f64 :: float64;
@@ -13,6 +14,9 @@ f64 :: float64;
 WINDOW_SCALE :: 0.5;
 WINDOW_WIDTH :: 1920;
 WINDOW_HEIGHT :: 1080;
+
+arrow_texture: Texture;
+player_texture: Texture;
 
 Sprite :: struct {
     texture: *Texture;
@@ -25,19 +29,27 @@ Sprite :: struct {
     frame := 0;
 }
 
-Player :: struct {
+entities: [..]*Entity;
+
+Entity :: struct {
     using position: Vector2;
-    sprite: Sprite;
+    using sprite: Sprite;
+    type: Type;
+}
+
+Player :: struct {
+    #as using entity: Entity;
+    type = Player;
 }
 
 Enemy :: struct {
-    using position: Vector2;
-    sprite: Sprite;
+    #as using entity: Entity;
+    type = Enemy;
 }
 
 Arrow :: struct {
-    using position: Vector2;
-    sprite: Sprite;
+    #as using entity: Entity;
+    type = Arrow;
 }
 
 main :: () {
@@ -49,23 +61,13 @@ main :: () {
 
     window_width, window_height := get_render_dimensions(window);
 
-    texture: Texture;
-    success := load_texture(*texture, "assets/images/enemy_1.png");
-    assert(success);
+    init_textures();
 
-    e := Enemy.{ 
-        position = Vector2.{200, 200},
-        sprite = Sprite.{ 
-            texture = *texture,
-            scale = Vector2.{2, 2},
-            h_frames = 6,
-            v_frames = 4,
-        }
-    };
-
+    for 0..100 spawn_arrow(random_get_within_range(0, 500), random_get_within_range(0, 500));
+    for 0..50 spawn_player(random_get_within_range(0, 500), random_get_within_range(0, 500));
+    
     quit := false;
     time := get_time();
-    secs := 0;
 
     while (!quit) {
         update_window_events();
@@ -84,24 +86,53 @@ main :: () {
         clear_render_target(0.15, 0.08, 0.08, 1.0);
 
         new_time := get_time();
-        new_secs := cast(int)new_time;
 
         delta := cast(f32) (new_time - time);
         time = new_time;
 
-        if (new_secs != secs)
-        {
-            secs = new_secs;
-            max := e.sprite.v_frames * e.sprite.h_frames;
-            e.sprite.frame = (e.sprite.frame + 1) % max;
-        }
-
-        render_sprite(e.position, e.sprite);
+        for entities render_sprite(it.position, it.sprite);
         
         swap_buffers(window);
         
         print("FPS: %, s: %\n", 1.0 / delta , delta);
     }
+}
+
+init_textures :: () {
+    arrow_texture = load_texture("assets/images/arrow.png");
+    player_texture = load_texture("assets/images/mc-body.png");
+}
+
+load_texture :: (filename: string) -> Texture {
+    result: Texture;
+    success := texture_load_from_file(*result, filename);
+    assert(success);
+    return result;
+}
+
+spawn_arrow :: (x: float, y: float) {
+    arrow := New(Arrow);
+    <<arrow = Arrow.{
+        x = x,
+        y = y,
+        sprite = Sprite.{
+            texture = *arrow_texture,
+        },
+    };
+    array_add(*entities, arrow);
+}
+
+spawn_player :: (x: float, y: float) -> *Player {
+    player := New(Player);
+    <<player = Player.{
+        x = x,
+        y = y,
+        sprite = Sprite.{
+            texture = *player_texture,
+        },
+    };
+    array_add(*entities, player);
+    return player;
 }
 
 render_sprite :: (position: Vector2, using sprite: Sprite) {
