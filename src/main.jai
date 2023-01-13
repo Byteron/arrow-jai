@@ -15,9 +15,6 @@ WINDOW_SCALE :: 0.5;
 WINDOW_WIDTH :: 1920;
 WINDOW_HEIGHT :: 1080;
 
-arrow_texture: Texture;
-player_texture: Texture;
-
 Sprite :: struct {
     texture: *Texture;
     scale := Vector2.{1, 1};
@@ -29,27 +26,29 @@ Sprite :: struct {
     frame := 0;
 }
 
-entities: [..]*Entity;
+player: Player;
+arrow: *Arrow;
+enemies: [..]*Enemy;
 
 Entity :: struct {
     using position: Vector2;
-    using sprite: Sprite;
-    type: Type;
+    direction: Vector2;
 }
 
 Player :: struct {
     #as using entity: Entity;
-    type = Player;
+    body_sprite: Sprite;
+    legs_sprite: Sprite;
 }
 
 Enemy :: struct {
     #as using entity: Entity;
-    type = Enemy;
+    using sprite: Sprite;
 }
 
 Arrow :: struct {
     #as using entity: Entity;
-    type = Arrow;
+    using sprite: Sprite;
 }
 
 main :: () {
@@ -63,9 +62,10 @@ main :: () {
 
     init_textures();
 
-    for 0..100 spawn_arrow(random_get_within_range(0, 500), random_get_within_range(0, 500));
-    for 0..50 spawn_player(random_get_within_range(0, 500), random_get_within_range(0, 500));
-    
+    spawn_player(200, 200);
+
+    for 0..10 spawn_enemy(random_get_within_range(0, 500), random_get_within_range(0, 500));
+
     quit := false;
     time := get_time();
 
@@ -90,7 +90,10 @@ main :: () {
         delta := cast(f32) (new_time - time);
         time = new_time;
 
-        for entities render_sprite(it.position, it.sprite);
+        for enemies render_sprite(it.position, it.sprite);
+        render_sprite(player.position, player.legs_sprite);
+        render_sprite(player.position, player.body_sprite);
+        if arrow render_sprite(arrow.position, arrow.sprite);
         
         swap_buffers(window);
         
@@ -98,20 +101,20 @@ main :: () {
     }
 }
 
+arrow_texture: Texture;
+player_body_texture: Texture;
+player_legs_texture: Texture;
+enemy_texture: Texture;
+
 init_textures :: () {
     arrow_texture = load_texture("assets/images/arrow.png");
-    player_texture = load_texture("assets/images/mc-body.png");
-}
-
-load_texture :: (filename: string) -> Texture {
-    result: Texture;
-    success := texture_load_from_file(*result, filename);
-    assert(success);
-    return result;
+    player_body_texture = load_texture("assets/images/mc-body.png");
+    player_legs_texture = load_texture("assets/images/mc-legs.png");
+    enemy_texture = load_texture("assets/images/enemy_1.png");
 }
 
 spawn_arrow :: (x: float, y: float) {
-    arrow := New(Arrow);
+    arrow = New(Arrow);
     <<arrow = Arrow.{
         x = x,
         y = y,
@@ -119,20 +122,36 @@ spawn_arrow :: (x: float, y: float) {
             texture = *arrow_texture,
         },
     };
-    array_add(*entities, arrow);
 }
 
-spawn_player :: (x: float, y: float) -> *Player {
-    player := New(Player);
-    <<player = Player.{
+spawn_enemy :: (x: float, y: float) {
+    enemy := New(Enemy);
+    <<enemy = Enemy.{
         x = x,
         y = y,
         sprite = Sprite.{
-            texture = *player_texture,
+            texture = *enemy_texture,
+            v_frames = 4,
+            h_frames = 6,
+            frame = 0,
         },
     };
-    array_add(*entities, player);
-    return player;
+    array_add(*enemies, enemy);
+}
+
+spawn_player :: (x: float, y: float) {
+    player = Player.{
+        x = x,
+        y = y,
+        body_sprite = Sprite.{
+            texture = *player_body_texture,
+        },
+        legs_sprite = Sprite.{
+            texture = *player_legs_texture,
+            h_frames = 6,
+            v_frames = 2,
+        },
+    };
 }
 
 render_sprite :: (position: Vector2, using sprite: Sprite) {
@@ -146,12 +165,12 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
 
     size *= scale;
 
-    offset := ifx centered then size / 2 else Vector2.{0, 0};
+    center_offset := ifx centered then size / 2 else Vector2.{0, 0};
     
     set_shader_for_images(texture);
     immediate_begin();
     
-    pos := position - offset;
+    pos := position - center_offset;
     
     uv0 := Vector2.{0,0};
     uv1 := Vector2.{1,0};
@@ -170,9 +189,6 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
         pos_y := frame_y * height;
         end_x := pos_x + width;
         end_y := pos_y + height;
-
-        texel_x := cast(float)width / texture.width;
-        texel_y := cast(float)height / texture.height;
 
         x0 := cast(float)pos_x / texture.width;
         y0 := cast(float)pos_y / texture.height;
@@ -202,11 +218,10 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
     immediate_flush();
 }
 
-load_texture :: (tex : *Texture, path : string) -> bool {
-    result := texture_load_from_file(tex, path);
-    if !result {
-        log_error("Unable to load texture %", path);
-    }
+load_texture :: (filename: string) -> Texture {
+    result: Texture;
+    success := texture_load_from_file(*result, filename);
+    assert(success);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
