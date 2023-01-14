@@ -56,6 +56,13 @@ player_body_texture: Texture;
 player_legs_texture: Texture;
 enemy_texture: Texture;
 tile_texture: Texture;
+heart_texture: Texture;
+heart_empty_texture: Texture;
+
+Entity :: struct {
+    using position: Vector2;
+    using sprite: Sprite;
+}
 
 Sprite :: struct {
     texture: *Texture;
@@ -68,19 +75,6 @@ Sprite :: struct {
     frame := 0;
 }
 
-player: Player;
-arrow: *Arrow;
-enemies: [..]*Enemy;
-tiles: [..]Tile;
-
-camera_position: Vector2;
-camera_offset: Vector2;
-
-Entity :: struct {
-    using position: Vector2;
-    using sprite: Sprite;
-}
-
 Player :: struct {
     #as using entity: Entity;
     legs_sprite: Sprite;
@@ -88,6 +82,8 @@ Player :: struct {
 
 Enemy :: struct {
     #as using entity: Entity;
+    health_sprite: Sprite;
+    health: u8;
 }
 
 Tile :: struct {
@@ -97,6 +93,14 @@ Tile :: struct {
 Arrow :: struct {
     #as using entity: Entity;
 }
+
+player: Player;
+arrow: *Arrow;
+enemies: [..]*Enemy;
+tiles: [..]Tile;
+
+camera_position: Vector2;
+camera_offset: Vector2;
 
 main :: () {
     width := cast(int) (WINDOW_WIDTH * WINDOW_SCALE);
