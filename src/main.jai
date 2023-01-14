@@ -1,11 +1,9 @@
 /*
-    Reimplementation of the GMTK 2019 Entry One Arrow Collosseum in Jai
-    Might be extended to a full game once we hit Game Jam status
-
     TODO
     - [x] Moving Character
     - [x] Moving Camera
-    - [ ] Draw Tiles
+    - [x] Draw Tiles
+    - [ ] Draw Crosshair
     - [ ] Shoot Arrow
     - [ ] Move Enemies
     - [ ] Collision Detection
@@ -14,6 +12,7 @@
         - [ ] Arrow / Entity Wall
     - [ ] Sprite Sheet Animations
     - [ ] limit camera to arena bounds
+    - [ ] Health Display
 */
 
 #import "Basic";
@@ -34,9 +33,16 @@ A :: 65;
 S :: 83;
 D :: 68;
 
-WINDOW_SCALE :: 0.5;
+WINDOW_SCALE :: 1;
 WINDOW_WIDTH :: 1920;
 WINDOW_HEIGHT :: 1080;
+
+TEXTURE_SCALE :: 2;
+
+TILE_SIZE :: 32;
+
+ARENA_WIDTH :: 40;
+ARENA_HEIGHT :: 20;
 
 PLAYER_SPEED :: 240.0;
 
@@ -49,6 +55,7 @@ arrow_texture: Texture;
 player_body_texture: Texture;
 player_legs_texture: Texture;
 enemy_texture: Texture;
+tile_texture: Texture;
 
 Sprite :: struct {
     texture: *Texture;
@@ -64,6 +71,7 @@ Sprite :: struct {
 player: Player;
 arrow: *Arrow;
 enemies: [..]*Enemy;
+tiles: [..]Tile;
 
 camera_position: Vector2;
 camera_offset: Vector2;
@@ -109,6 +117,12 @@ main :: () {
 
     spawn_player(200, 200);
 
+    for y: 0..ARENA_HEIGHT-1 {
+        for x: 0..ARENA_WIDTH-1 {
+            spawn_tile(cast(int)random_get_within_range(0, 5), x * TILE_SIZE, y * TILE_SIZE);
+        }
+    }
+
     for 0..10 spawn_enemy(random_get_within_range(0, 500), random_get_within_range(0, 500));
 
     quit := false;
@@ -142,6 +156,7 @@ main :: () {
                 
         clear_render_target(0.15, 0.08, 0.08, 1.0);
 
+        for tiles render_sprite(it.position, it.sprite);
         for enemies render_sprite(it.position, it.sprite);
         render_sprite(player.position, player.legs_sprite);
         render_sprite(player.position, player.body_sprite);
@@ -158,29 +173,47 @@ init_textures :: () {
     player_body_texture = load_texture("assets/images/mc-body.png");
     player_legs_texture = load_texture("assets/images/mc-legs.png");
     enemy_texture = load_texture("assets/images/enemy_1.png");
+    tile_texture = load_texture("assets/images/tiles.png");
+}
+
+spawn_tile :: (id: int, x: int, y: int) {
+    tile := Tile.{
+        x = cast(float)x * TEXTURE_SCALE,
+        y = cast(float)y * TEXTURE_SCALE,
+        sprite = .{
+            texture = *tile_texture,
+            v_frames = 2,
+            h_frames = 3,
+            frame = id,
+            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
+        }
+    };
+    array_add(*tiles, tile);
 }
 
 spawn_arrow :: (x: float, y: float) {
     arrow = New(Arrow);
-    <<arrow = Arrow.{
+    <<arrow = .{
         x = x,
         y = y,
-        sprite = Sprite.{
+        sprite = .{
             texture = *arrow_texture,
+            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
     };
 }
 
 spawn_enemy :: (x: float, y: float) {
     enemy := New(Enemy);
-    <<enemy = Enemy.{
+    <<enemy = .{
         x = x,
         y = y,
-        sprite = Sprite.{
+        sprite = .{
             texture = *enemy_texture,
             v_frames = 4,
             h_frames = 6,
             frame = 0,
+            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
     };
     array_add(*enemies, enemy);
@@ -190,13 +223,15 @@ spawn_player :: (x: float, y: float) {
     player = Player.{
         x = x,
         y = y,
-        body_sprite = Sprite.{
+        body_sprite = .{
             texture = *player_body_texture,
+            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
-        legs_sprite = Sprite.{
+        legs_sprite = .{
             texture = *player_legs_texture,
             h_frames = 6,
             v_frames = 2,
+            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
     };
 }
