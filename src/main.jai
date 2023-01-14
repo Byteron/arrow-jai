@@ -1,3 +1,21 @@
+/*
+    Reimplementation of the GMTK 2019 Entry One Arrow Collosseum in Jai
+    Might be extended to a full game once we hit Game Jam status
+
+    TODO
+    - [x] Moving Character
+    - [x] Moving Camera
+    - [ ] Draw Tiles
+    - [ ] Shoot Arrow
+    - [ ] Move Enemies
+    - [ ] Collision Detection
+        - [ ] Arrow Entity
+        - [ ] Entity Entity
+        - [ ] Arrow / Entity Wall
+    - [ ] Sprite Sheet Animations
+    - [ ] limit camera to arena bounds
+*/
+
 #import "Basic";
 #import "Math";
 #import "Window_Creation";
@@ -11,9 +29,26 @@
 f32 :: float32;
 f64 :: float64;
 
+W :: 87;
+A :: 65;
+S :: 83;
+D :: 68;
+
 WINDOW_SCALE :: 0.5;
 WINDOW_WIDTH :: 1920;
 WINDOW_HEIGHT :: 1080;
+
+PLAYER_SPEED :: 240.0;
+
+move_left: u32;
+move_right: u32;
+move_up: u32;
+move_down: u32;
+
+arrow_texture: Texture;
+player_body_texture: Texture;
+player_legs_texture: Texture;
+enemy_texture: Texture;
 
 Sprite :: struct {
     texture: *Texture;
@@ -30,9 +65,11 @@ player: Player;
 arrow: *Arrow;
 enemies: [..]*Enemy;
 
+camera_position: Vector2;
+camera_offset: Vector2;
+
 Entity :: struct {
     using position: Vector2;
-    direction: Vector2;
 }
 
 Player :: struct {
@@ -46,6 +83,11 @@ Enemy :: struct {
     using sprite: Sprite;
 }
 
+Tile :: struct {
+    #as using entity: Entity;
+    using sprite: Sprite;
+}
+
 Arrow :: struct {
     #as using entity: Entity;
     using sprite: Sprite;
@@ -55,6 +97,9 @@ main :: () {
     width := cast(int) (WINDOW_WIDTH * WINDOW_SCALE);
     height := cast(int) (WINDOW_HEIGHT * WINDOW_SCALE);
 
+    camera_offset.x = cast(f32) width / 2;
+    camera_offset.y = cast(f32) height / 2;
+    
     window := create_window(window_name = "One Arrow Colosseum", width = width, height = height);
     set_render_target(window);
 
@@ -80,15 +125,22 @@ main :: () {
                         quit = true;
                     }
 
+                    if it.key_code == W move_up = it.key_pressed;
+                    if it.key_code == S move_down = it.key_pressed;
+                    if it.key_code == A move_left = it.key_pressed;
+                    if it.key_code == D move_right = it.key_pressed;
             }
         }
-
-        clear_render_target(0.15, 0.08, 0.08, 1.0);
-
+        
         new_time := get_time();
 
         delta := cast(f32) (new_time - time);
         time = new_time;
+
+        move_player(delta);
+        move_camera(delta);
+                
+        clear_render_target(0.15, 0.08, 0.08, 1.0);
 
         for enemies render_sprite(it.position, it.sprite);
         render_sprite(player.position, player.legs_sprite);
@@ -100,11 +152,6 @@ main :: () {
         print("FPS: %, s: %\n", 1.0 / delta , delta);
     }
 }
-
-arrow_texture: Texture;
-player_body_texture: Texture;
-player_legs_texture: Texture;
-enemy_texture: Texture;
 
 init_textures :: () {
     arrow_texture = load_texture("assets/images/arrow.png");
@@ -154,6 +201,25 @@ spawn_player :: (x: float, y: float) {
     };
 }
 
+
+move_player :: (delta: f32) {
+    direction := Vector2.{0, 0};
+    
+    if move_right direction.x += 1;
+    if move_left direction.x -= 1;
+    if move_up direction.y += 1;
+    if move_down direction.y -= 1;
+
+    if (length(direction) > 1) direction = unit_vector(direction);
+
+    velocity := direction * PLAYER_SPEED * delta;
+    player.position += velocity;
+}
+
+move_camera :: (delta: f32) {
+    camera_position = player.position;
+}
+
 render_sprite :: (position: Vector2, using sprite: Sprite) {
     size := Vector2.{cast(f32)texture.width, cast(f32)texture.height};
 
@@ -170,7 +236,7 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
     set_shader_for_images(texture);
     immediate_begin();
     
-    pos := position - center_offset;
+    pos := position - center_offset - camera_position + camera_offset;
     
     uv0 := Vector2.{0,0};
     uv1 := Vector2.{1,0};
