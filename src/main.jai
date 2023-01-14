@@ -33,7 +33,7 @@ A :: 65;
 S :: 83;
 D :: 68;
 
-WINDOW_SCALE :: 1;
+WINDOW_SCALE :: 0.5;
 WINDOW_WIDTH :: 1920;
 WINDOW_HEIGHT :: 1080;
 
@@ -78,27 +78,24 @@ camera_offset: Vector2;
 
 Entity :: struct {
     using position: Vector2;
+    using sprite: Sprite;
 }
 
 Player :: struct {
     #as using entity: Entity;
-    body_sprite: Sprite;
     legs_sprite: Sprite;
 }
 
 Enemy :: struct {
     #as using entity: Entity;
-    using sprite: Sprite;
 }
 
 Tile :: struct {
     #as using entity: Entity;
-    using sprite: Sprite;
 }
 
 Arrow :: struct {
     #as using entity: Entity;
-    using sprite: Sprite;
 }
 
 main :: () {
@@ -159,7 +156,7 @@ main :: () {
         for tiles render_sprite(it.position, it.sprite);
         for enemies render_sprite(it.position, it.sprite);
         render_sprite(player.position, player.legs_sprite);
-        render_sprite(player.position, player.body_sprite);
+        render_sprite(player.position, player.sprite);
         if arrow render_sprite(arrow.position, arrow.sprite);
         
         swap_buffers(window);
@@ -223,7 +220,7 @@ spawn_player :: (x: float, y: float) {
     player = Player.{
         x = x,
         y = y,
-        body_sprite = .{
+        sprite = .{
             texture = *player_body_texture,
             scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
