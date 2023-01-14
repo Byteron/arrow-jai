@@ -37,8 +37,6 @@ WINDOW_SCALE :: 0.5;
 WINDOW_WIDTH :: 1920;
 WINDOW_HEIGHT :: 1080;
 
-TEXTURE_SCALE :: 2;
-
 TILE_SIZE :: 32;
 
 ARENA_WIDTH :: 40;
@@ -57,7 +55,11 @@ player_legs_texture: Texture;
 enemy_texture: Texture;
 tile_texture: Texture;
 heart_texture: Texture;
-heart_empty_texture: Texture;
+
+Rect2 :: struct {
+    position: Vector2;
+    size: Vector2;
+}
 
 Entity :: struct {
     using position: Vector2;
@@ -66,9 +68,12 @@ Entity :: struct {
 
 Sprite :: struct {
     texture: *Texture;
-    scale := Vector2.{1, 1};
+    offset := Vector2.{0, 0};
     centered := true;
     rotation := 0.0;
+
+    clip_to_region := false;
+    region: Rect2;
     
     h_frames := 0;
     v_frames := 0;
@@ -78,12 +83,14 @@ Sprite :: struct {
 Player :: struct {
     #as using entity: Entity;
     legs_sprite: Sprite;
+    health: u8;
+    health_bar: Sprite;
 }
 
 Enemy :: struct {
     #as using entity: Entity;
-    health_sprite: Sprite;
     health: u8;
+    health_bar: Sprite;
 }
 
 Tile :: struct {
@@ -158,14 +165,19 @@ main :: () {
         clear_render_target(0.15, 0.08, 0.08, 1.0);
 
         for tiles render_sprite(it.position, it.sprite);
+        
         for enemies render_sprite(it.position, it.sprite);
+        
         render_sprite(player.position, player.legs_sprite);
         render_sprite(player.position, player.sprite);
+        
         if arrow render_sprite(arrow.position, arrow.sprite);
+       
+        for enemies render_sprite(it.position, it.health_bar);
         
         swap_buffers(window);
         
-        print("FPS: %, s: %\n", 1.0 / delta , delta);
+        // print("FPS: %, s: %\n", 1.0 / delta , delta);
     }
 }
 
@@ -175,18 +187,18 @@ init_textures :: () {
     player_legs_texture = load_texture("assets/images/mc-legs.png");
     enemy_texture = load_texture("assets/images/enemy_1.png");
     tile_texture = load_texture("assets/images/tiles.png");
+    heart_texture = load_texture("assets/images/heart.png");
 }
 
 spawn_tile :: (id: int, x: int, y: int) {
     tile := Tile.{
-        x = cast(float)x * TEXTURE_SCALE,
-        y = cast(float)y * TEXTURE_SCALE,
+        x = cast(float)x,
+        y = cast(float)y,
         sprite = .{
             texture = *tile_texture,
             v_frames = 2,
             h_frames = 3,
             frame = id,
-            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         }
     };
     array_add(*tiles, tile);
@@ -199,12 +211,14 @@ spawn_arrow :: (x: float, y: float) {
         y = y,
         sprite = .{
             texture = *arrow_texture,
-            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
     };
 }
 
 spawn_enemy :: (x: float, y: float) {
+    health := floor(random_get_within_range(1, 3));
+    texture_width := 19 * health;
+    print("%, %\n", health, texture_width);
     enemy := New(Enemy);
     <<enemy = .{
         x = x,
@@ -214,9 +228,16 @@ spawn_enemy :: (x: float, y: float) {
             v_frames = 4,
             h_frames = 6,
             frame = 0,
-            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
+        health_bar = .{
+            texture = *heart_texture,
+            // clip_to_region = true,
+            region = .{ size = .{ texture_width, 14 } },
+            offset = .{0, 32},
+        },
+        health = cast(u8)health,
     };
+
     array_add(*enemies, enemy);
 }
 
@@ -226,17 +247,14 @@ spawn_player :: (x: float, y: float) {
         y = y,
         sprite = .{
             texture = *player_body_texture,
-            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
         legs_sprite = .{
             texture = *player_legs_texture,
             h_frames = 6,
             v_frames = 2,
-            scale = .{TEXTURE_SCALE, TEXTURE_SCALE},
         },
     };
 }
-
 
 move_player :: (delta: f32) {
     direction := Vector2.{0, 0};
@@ -259,27 +277,44 @@ move_camera :: (delta: f32) {
 render_sprite :: (position: Vector2, using sprite: Sprite) {
     size := Vector2.{cast(f32)texture.width, cast(f32)texture.height};
 
-    if (h_frames > 0 || v_frames > 0) {
-        width := texture.width / h_frames;
-        height := texture.height / v_frames;
+    if clip_to_region {
+        size = region.size;
+    }
+    
+    if h_frames > 0 || v_frames > 0 {
+        width := size.x / h_frames;
+        height := size.y / v_frames;
         size = Vector2.{cast(float)width, cast(float)height};
     };
-
-    size *= scale;
 
     center_offset := ifx centered then size / 2 else Vector2.{0, 0};
     
     set_shader_for_images(texture);
     immediate_begin();
     
-    pos := position - center_offset - camera_position + camera_offset;
+    pos := position - center_offset - camera_position + camera_offset + offset;
     
     uv0 := Vector2.{0,0};
     uv1 := Vector2.{1,0};
     uv2 := Vector2.{1,1};
     uv3 := Vector2.{0,1};
+
+    if clip_to_region {
+        x0 := region.position.x / texture.width;
+        y0 := region.position.y / texture.height;
+        x1 := (region.position.x + region.size.x) / texture.width;
+        y1 := (region.position.y + region.size.y) / texture.height;
+
+        uv0 = Vector2.{x0, y0};
+        uv1 = Vector2.{x1, y0};
+        uv2 = Vector2.{x1, y1};
+        uv3 = Vector2.{x0, y1};
+
+        // print("region: %\n", region);
+        // print("region UV: (%, %), (%, %)\n", x0, y0, x1, y1);
+    } 
     
-    if (h_frames > 0 || v_frames > 0)
+    if h_frames > 0 || v_frames > 0
     {
         width := texture.width / h_frames;
         height := texture.height / v_frames;
