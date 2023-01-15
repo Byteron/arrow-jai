@@ -1,6 +1,23 @@
+ONE ARROW COLLOSEUM
 
 Reimplementation of the GMTK 2019 Entry One Arrow Collosseum in Jai
 Might be extended to a full game once we hit Game Jam status
+
+TODO
+- [x] Moving Character
+- [x] Moving Camera
+- [x] Draw Tiles
+- [x] Draw Crosshair
+- [x] Health Display
+- [x] limit camera to arena bounds
+- [x] Move Enemies
+- [ ] Shoot Arrow
+- [ ] Collision Detection
+    - [ ] Arrow Entity
+    - [ ] Entity Entity
+    - [ ] Arrow / Entity Wall
+- [ ] Sprite Sheet Animations
+- [ ] Kill Entities on Health 0
 
 GAME DESIGN
 - Arena Twin-Stick Shooter

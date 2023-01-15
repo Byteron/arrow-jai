@@ -1,21 +1,3 @@
-/*
-    TODO
-    - [x] Moving Character
-    - [x] Moving Camera
-    - [x] Draw Tiles
-    - [x] Draw Crosshair
-    - [x] Health Display
-    - [x] limit camera to arena bounds
-    - [x] Move Enemies
-    - [ ] Shoot Arrow
-    - [ ] Collision Detection
-        - [ ] Arrow Entity
-        - [ ] Entity Entity
-        - [ ] Arrow / Entity Wall
-    - [ ] Sprite Sheet Animations
-    - [ ] Kill Entities on Health 0
-*/
-
 #import "Basic";
 #import "Math";
 #import "Window_Creation";
@@ -159,9 +141,7 @@ main :: () {
             if it.type == {
                 case .QUIT; quit = true;
                 case .KEYBOARD;
-                    if it.key_pressed && it.key_code == .ESCAPE {
-                        quit = true;
-                    }
+                    if it.key_pressed && it.key_code == .ESCAPE quit = true;
 
                     if it.key_code == W move_up = it.key_pressed;
                     if it.key_code == S move_down = it.key_pressed;
@@ -303,7 +283,6 @@ move_crosshair :: () {
 
 move_camera :: () {
     camera_position = player.position;
-
     Clamp(*camera_position.x, camera_offset.x + 16, TILE_SIZE * ARENA_WIDTH - camera_offset.x - 16);
     Clamp(*camera_position.y, camera_offset.y + 16, TILE_SIZE * ARENA_HEIGHT - camera_offset.y - 16);
 }
@@ -319,19 +298,14 @@ move_enemies :: () {
             }
         }
         
-        velocity := direction * it.speed * delta;
-        
-        it.position += velocity;
-        
+        it.position += direction * it.speed * delta;
     }
 }
 
 render_sprite :: (position: Vector2, using sprite: Sprite) {
     size := Vector2.{cast(f32)texture.width, cast(f32)texture.height};
 
-    if clip_to_region {
-        size = region.size;
-    }
+    if clip_to_region size = region.size;
     
     if h_frames > 0 || v_frames > 0 {
         width := size.x / h_frames;
@@ -398,7 +372,6 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
     v3 = rotate(v3 - position, rotation) + position;
 
     immediate_quad(v0, v1, v2, v3, uv0 = uv0, uv1 = uv1, uv2 = uv2, uv3 = uv3);
-
     immediate_flush();
 }
 
