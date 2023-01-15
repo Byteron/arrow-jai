@@ -337,8 +337,7 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
         uv3 = Vector2.{x0, y1};
     } 
     
-    if h_frames > 0 || v_frames > 0
-    {
+    if h_frames > 0 || v_frames > 0 {
         width := texture.width / h_frames;
         height := texture.height / v_frames;
 
