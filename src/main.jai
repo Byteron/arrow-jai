@@ -3,16 +3,17 @@
     - [x] Moving Character
     - [x] Moving Camera
     - [x] Draw Tiles
-    - [ ] Draw Crosshair
+    - [x] Draw Crosshair
+    - [x] Health Display
+    - [x] limit camera to arena bounds
+    - [x] Move Enemies
     - [ ] Shoot Arrow
-    - [ ] Move Enemies
     - [ ] Collision Detection
         - [ ] Arrow Entity
         - [ ] Entity Entity
         - [ ] Arrow / Entity Wall
     - [ ] Sprite Sheet Animations
-    - [ ] limit camera to arena bounds
-    - [ ] Health Display
+    - [ ] Kill Entities on Health 0
 */
 
 #import "Basic";
@@ -40,9 +41,13 @@ WINDOW_HEIGHT :: 1080;
 TILE_SIZE :: 32;
 
 ARENA_WIDTH :: 40;
-ARENA_HEIGHT :: 20;
+ARENA_HEIGHT :: 30;
 
 PLAYER_SPEED :: 240.0;
+
+delta: f32;
+
+mouse_position: Vector2;
 
 move_left: u32;
 move_right: u32;
@@ -55,6 +60,7 @@ player_legs_texture: Texture;
 enemy_texture: Texture;
 tile_texture: Texture;
 heart_texture: Texture;
+crosshair_texture: Texture;
 
 Rect2 :: struct {
     position: Vector2;
@@ -90,6 +96,7 @@ Player :: struct {
 Enemy :: struct {
     #as using entity: Entity;
     health: u8;
+    speed: f32;
     health_bar: Sprite;
 }
 
@@ -105,6 +112,7 @@ player: Player;
 arrow: *Arrow;
 enemies: [..]*Enemy;
 tiles: [..]Tile;
+crosshair: Entity;
 
 camera_position: Vector2;
 camera_offset: Vector2;
@@ -123,7 +131,7 @@ main :: () {
 
     init_textures();
 
-    spawn_player(200, 200);
+    spawn_player(300, 400);
 
     for y: 0..ARENA_HEIGHT-1 {
         for x: 0..ARENA_WIDTH-1 {
@@ -138,7 +146,15 @@ main :: () {
 
     while (!quit) {
         update_window_events();
+        
+        mouse_x, mouse_y := get_mouse_pointer_position();
+        mouse_position = Vector2.{cast(f32)mouse_x, -cast(f32)mouse_y + window_height} - camera_offset;
 
+        new_time := get_time();
+
+        delta = cast(f32) (new_time - time);
+        time = new_time;
+    
         for events_this_frame {
             if it.type == {
                 case .QUIT; quit = true;
@@ -154,14 +170,11 @@ main :: () {
             }
         }
         
-        new_time := get_time();
-
-        delta := cast(f32) (new_time - time);
-        time = new_time;
-
-        move_player(delta);
-        move_camera(delta);
-                
+        move_player();
+        move_crosshair();
+        move_camera();
+        move_enemies();
+      
         clear_render_target(0.15, 0.08, 0.08, 1.0);
 
         for tiles render_sprite(it.position, it.sprite);
@@ -174,10 +187,11 @@ main :: () {
         if arrow render_sprite(arrow.position, arrow.sprite);
        
         for enemies render_sprite(it.position, it.health_bar);
+        render_sprite(crosshair.position, crosshair.sprite);
         
         swap_buffers(window);
         
-        // print("FPS: %, s: %\n", 1.0 / delta , delta);
+        print("FPS: %, s: %\n", 1.0 / delta , delta);
     }
 }
 
@@ -188,6 +202,7 @@ init_textures :: () {
     enemy_texture = load_texture("assets/images/enemy_1.png");
     tile_texture = load_texture("assets/images/tiles.png");
     heart_texture = load_texture("assets/images/heart.png");
+    crosshair_texture = load_texture("assets/images/crosshair.png");
 }
 
 spawn_tile :: (id: int, x: int, y: int) {
@@ -216,9 +231,11 @@ spawn_arrow :: (x: float, y: float) {
 }
 
 spawn_enemy :: (x: float, y: float) {
-    health := floor(random_get_within_range(1, 3));
-    texture_width := 19 * health;
-    print("%, %\n", health, texture_width);
+    health := floor(random_get_within_range(1, 4));
+    speed := floor(random_get_within_range(50, 160));
+    
+    texture_width := 19.0 * health;
+    
     enemy := New(Enemy);
     <<enemy = .{
         x = x,
@@ -231,11 +248,12 @@ spawn_enemy :: (x: float, y: float) {
         },
         health_bar = .{
             texture = *heart_texture,
-            // clip_to_region = true,
-            region = .{ size = .{ texture_width, 14 } },
+            clip_to_region = true,
+            region = Rect2.{ size = Vector2.{ texture_width, 14 } },
             offset = .{0, 32},
         },
-        health = cast(u8)health,
+        health = cast(u8) health,
+        speed = speed,
     };
 
     array_add(*enemies, enemy);
@@ -254,9 +272,15 @@ spawn_player :: (x: float, y: float) {
             v_frames = 2,
         },
     };
+
+    crosshair = Entity.{
+        sprite = .{
+            texture = *crosshair_texture,
+        }
+    };
 }
 
-move_player :: (delta: f32) {
+move_player :: () {
     direction := Vector2.{0, 0};
     
     if move_right direction.x += 1;
@@ -270,8 +294,36 @@ move_player :: (delta: f32) {
     player.position += velocity;
 }
 
-move_camera :: (delta: f32) {
+move_crosshair :: () {
+    world_position := mouse_position + camera_position;
+    direction := get_direction(player.position, world_position);
+    position := direction * 100;
+    crosshair.position = player.position + direction * 100;
+}
+
+move_camera :: () {
     camera_position = player.position;
+
+    Clamp(*camera_position.x, camera_offset.x + 16, TILE_SIZE * ARENA_WIDTH - camera_offset.x - 16);
+    Clamp(*camera_position.y, camera_offset.y + 16, TILE_SIZE * ARENA_HEIGHT - camera_offset.y - 16);
+}
+
+move_enemies :: () {
+    for enemies {
+        direction := get_direction(it.position, player.position);
+        
+        for other: enemies {
+            if (distance(it.position, other.position) < 40) {
+                direction += get_direction(other.position, it.position);
+                direction /= 2;
+            }
+        }
+        
+        velocity := direction * it.speed * delta;
+        
+        it.position += velocity;
+        
+    }
 }
 
 render_sprite :: (position: Vector2, using sprite: Sprite) {
@@ -309,9 +361,6 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
         uv1 = Vector2.{x1, y0};
         uv2 = Vector2.{x1, y1};
         uv3 = Vector2.{x0, y1};
-
-        // print("region: %\n", region);
-        // print("region UV: (%, %), (%, %)\n", x0, y0, x1, y1);
     } 
     
     if h_frames > 0 || v_frames > 0
@@ -336,14 +385,12 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
         uv1 = Vector2.{x1, y0};
         uv2 = Vector2.{x1, y1};
         uv3 = Vector2.{x0, y1};
-        
     }
 
     v0 := Vector2.{pos.x, pos.y};
     v1 := Vector2.{pos.x + size.x, pos.y};
     v2 := Vector2.{pos.x + size.x, pos.y + size.y};
     v3 := Vector2.{pos.x, pos.y + size.y};
-
 
     v0 = rotate(v0 - position, rotation) + position;
     v1 = rotate(v1 - position, rotation) + position;
@@ -364,4 +411,9 @@ load_texture :: (filename: string) -> Texture {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     
     return result;
+}
+
+get_direction :: (a: Vector2, b: Vector2) -> Vector2 {
+    direction := Vector2.{ b.x - a.x,b.y - a.y };
+    return unit_vector(direction);
 }
