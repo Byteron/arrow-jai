@@ -36,6 +36,12 @@ move_right: u32;
 move_up: u32;
 move_down: u32;
 
+shoot: bool;
+aiming: u32;
+charge_time: f32;
+charge: s8;
+prev_charge: s8 = -1;
+
 arrow_texture: Texture;
 player_body_texture: Texture;
 player_legs_texture: Texture;
@@ -88,6 +94,8 @@ Tile :: struct {
 
 Arrow :: struct {
     #as using entity: Entity;
+    direction: Vector2;
+    speed: f32;
 }
 
 player: Player;
@@ -147,10 +155,33 @@ main :: () {
                     if it.key_code == S move_down = it.key_pressed;
                     if it.key_code == A move_left = it.key_pressed;
                     if it.key_code == D move_right = it.key_pressed;
+
+                    if it.key_code == .MOUSE_BUTTON_LEFT aiming = it.key_pressed;
+                    if it.key_code == .MOUSE_BUTTON_LEFT && !it.key_pressed shoot = true;                    
+            }
+        }
+
+        if aiming && charge < 2 {
+            charge_time += delta;
+            charge = cast(s8) charge_time;
+            if charge > prev_charge {
+                prev_charge = charge;
+                log("Charge: %", charge);
+                // TODO: play charge sound here
             }
         }
         
+        if shoot {
+            direction := get_direction(player.position, crosshair.position);
+            spawn_arrow(player.position, direction, 600.0 + 300 * charge);
+            shoot = false;
+            charge_time = 0;
+            charge = 0;
+            prev_charge = -1;
+        }
+
         move_player();
+        move_arrow();
         move_crosshair();
         move_camera();
         move_enemies();
@@ -171,7 +202,7 @@ main :: () {
         
         swap_buffers(window);
         
-        print("FPS: %, s: %\n", 1.0 / delta , delta);
+        // print("FPS: %, s: %\n", 1.0 / delta , delta);
     }
 }
 
@@ -199,11 +230,12 @@ spawn_tile :: (id: int, x: int, y: int) {
     array_add(*tiles, tile);
 }
 
-spawn_arrow :: (x: float, y: float) {
-    arrow = New(Arrow);
+spawn_arrow :: (position: Vector2, direction: Vector2, speed: f32) {
+    if !arrow arrow = New(Arrow);
     <<arrow = .{
-        x = x,
-        y = y,
+        position = position,
+        direction = direction,
+        speed = speed,
         sprite = .{
             texture = *arrow_texture,
         },
@@ -272,6 +304,11 @@ move_player :: () {
 
     velocity := direction * PLAYER_SPEED * delta;
     player.position += velocity;
+}
+
+move_arrow :: () {
+    if !arrow return;
+    arrow.position += arrow.direction * arrow.speed * delta;
 }
 
 move_crosshair :: () {

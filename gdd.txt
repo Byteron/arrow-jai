@@ -11,13 +11,16 @@ TODO
 - [x] Health Display
 - [x] limit camera to arena bounds
 - [x] Move Enemies
-- [ ] Shoot Arrow
+- [x] Shoot Arrow
 - [ ] Collision Detection
+- [ ] Collect Arrow
     - [ ] Arrow Entity
     - [ ] Entity Entity
     - [ ] Arrow / Entity Wall
 - [ ] Sprite Sheet Animations
-- [ ] Kill Entities on Health 0
+- [ ] Directional Animations, if we want that
+- [ ] Kill Entities on Health
+- [ ] death particles
 
 GAME DESIGN
 - Arena Twin-Stick Shooter
