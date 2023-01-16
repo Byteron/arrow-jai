@@ -319,7 +319,7 @@ move_crosshair :: () {
 }
 
 move_camera :: () {
-    camera_position = player.position;
+    camera_position = lerp(camera_position, player.position, 0.01);
     Clamp(*camera_position.x, camera_offset.x + 16, TILE_SIZE * ARENA_WIDTH - camera_offset.x - 16);
     Clamp(*camera_position.y, camera_offset.y + 16, TILE_SIZE * ARENA_HEIGHT - camera_offset.y - 16);
 }
