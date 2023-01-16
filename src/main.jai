@@ -1,3 +1,8 @@
+/*
+    One Arrow Colosseum
+    Reimplementation of the GMTK 2019 Game Jam Entry of the same name.
+*/
+
 #import "Basic";
 #import "Math";
 #import "Window_Creation";
@@ -202,7 +207,7 @@ main :: () {
         
         swap_buffers(window);
         
-        // print("FPS: %, s: %\n", 1.0 / delta , delta);
+        print("FPS: %, s: %\n", 1.0 / delta , delta);
     }
 }
 
