@@ -7,19 +7,29 @@
 #import "Math";
 #import "Window_Creation";
 #import "System";
+#import "File";
 #import "String";
 #import "GL";
 #import "Simp";
 #import "Input";
 #import "Random";
+#import "Wav_File";
+#import "Sound_Player";
 
 f32 :: float32;
 f64 :: float64;
+
+WAV :: "wav";
+OGG :: "ogg";
 
 W :: 87;
 A :: 65;
 S :: 83;
 D :: 68;
+
+sound_bow_charge_1: *Mixer_Sound_Data;
+sound_bow_charge_2: *Mixer_Sound_Data;
+sound_bow_charge_3: *Mixer_Sound_Data;
 
 WINDOW_SCALE :: 0.5;
 WINDOW_WIDTH :: 1920;
@@ -125,6 +135,7 @@ main :: () {
     window_width, window_height := get_render_dimensions(window);
 
     init_textures();
+    init_sounds();
 
     spawn_player(300, 400);
 
@@ -219,6 +230,12 @@ init_textures :: () {
     tile_texture = load_texture("assets/images/tiles.png");
     heart_texture = load_texture("assets/images/heart.png");
     crosshair_texture = load_texture("assets/images/crosshair.png");
+}
+
+init_sounds :: () {
+    sound_bow_charge_1 = load_sound("assets/sfx/bow_charge_1.wav");
+    sound_bow_charge_2 = load_sound("assets/sfx/bow_charge_2.wav");
+    sound_bow_charge_3 = load_sound("assets/sfx/bow_charge_3.wav");
 }
 
 spawn_tile :: (id: int, x: int, y: int) {
@@ -425,6 +442,74 @@ load_texture :: (filename: string) -> Texture {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     
     return result;
+}
+
+load_sound :: (basename: string) -> *Mixer_Sound_Data {
+    name := basename;
+    data := load_audio_file(name);
+
+    if !data {
+        print("Error: Could not load wav file: %\n", name);
+        exit(1); // Hard-exit for now.
+        return null;
+    }
+
+    return data;
+}
+
+load_audio_file :: (name : string) -> *Mixer_Sound_Data {
+    data : *Mixer_Sound_Data = null;
+
+    file_data, success := read_entire_file(name);
+    if !success return data;
+
+    has_extension :: (name: string, extension: string) -> bool {
+        if name.count < extension.count  return false;
+        test := name;
+        advance(*test, name.count - extension.count);
+        return test == extension;
+    }
+
+    if has_extension(name, WAV) {
+        data = New(Mixer_Sound_Data);
+        data.name = copy_string(name);
+        data.buffer = file_data;
+
+        format, samples, success2, extra := get_wav_header(data.buffer);
+        if !success2 {
+            log_error("Unable to parse '%' as wav.\n", data.full_path);
+            return data;
+        }
+
+        if format.wFormatTag == WAVE_FORMAT_PCM {
+            data.type = .LINEAR_SAMPLE_ARRAY;
+            data.nchannels = cast(u16) format.nChannels;
+            data.nsamples_times_nchannels = samples.count/2;
+        } else if format.wFormatTag == WAVE_FORMAT_DVI_ADPCM {
+            data.type = .ADPCM_COMPRESSED;
+            data.wSamplesPerBlock = extra.wSamplesPerBlock;
+            data.nBlockAlign = format.nBlockAlign;
+
+            data.nchannels = cast(u16) format.nChannels;
+            // The value in the FACT chunk is number of samples by time. 
+            data.nsamples_times_nchannels = extra.wSamplesAccordingToFactChunk * data.nchannels;
+        } else {
+            assert(false);
+        }
+
+        data.samples = cast(*s16) samples.data;
+        data.sampling_rate = cast(u32) format.nSamplesPerSec;
+    } else if has_extension(name, OGG) {
+        data = New(Mixer_Sound_Data);
+        data.name = copy_string(name);
+        data.buffer = file_data;
+        data.type = .OGG_COMPRESSED;
+    } else {
+        // Unsupported format.
+        assert(false);
+    }
+
+    return data;
 }
 
 get_direction :: (a: Vector2, b: Vector2) -> Vector2 {
