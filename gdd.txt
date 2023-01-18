@@ -13,7 +13,7 @@ TODO
 - [x] Move Enemies
 - [x] Shoot Arrow
 - [x] Sound Effects
-- [ ] Collision Detection
+- [x] Collision Detection
 - [ ] Collect Arrow
     - [ ] Arrow Entity
     - [ ] Entity Entity

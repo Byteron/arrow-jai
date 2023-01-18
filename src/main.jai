@@ -90,11 +90,16 @@ Sprite :: struct {
     frame := 0;
 }
 
+Collider :: struct {
+    radius := 16.0;
+}
+
 Player :: struct {
     #as using entity: Entity;
     legs_sprite: Sprite;
     health: u8;
     health_bar: Sprite;
+    collider: Collider;
 }
 
 Enemy :: struct {
@@ -102,6 +107,7 @@ Enemy :: struct {
     health: u8;
     speed: f32;
     health_bar: Sprite;
+    collider: Collider;
 }
 
 Tile :: struct {
@@ -112,6 +118,7 @@ Arrow :: struct {
     #as using entity: Entity;
     direction: Vector2;
     speed: f32;
+    collider: Collider;
 }
 
 player: Player;
@@ -184,6 +191,8 @@ main :: () {
             }
         }
 
+        // Simulation
+        
         if aiming && charge < 2 {
             charge_time += delta;
             charge = cast(s8) charge_time;
@@ -210,9 +219,11 @@ main :: () {
         move_enemies();
         
         update_sound_player(delta);
-              
+
+        // Render 
         clear_render_target(0.15, 0.08, 0.08, 1.0);
 
+        // Sprites
         for tiles render_sprite(it.position, it.sprite);
         
         for enemies render_sprite(it.position, it.sprite);
@@ -221,9 +232,15 @@ main :: () {
         render_sprite(player.position, player.sprite);
         
         if arrow render_sprite(arrow.position, arrow.sprite);
-       
+        
+        // UI
         for enemies render_sprite(it.position, it.health_bar);
         render_sprite(crosshair.position, crosshair.sprite);
+
+        // Debug
+        for enemies render_collider(it.position, it.collider);
+        render_collider(player.position, player.collider);
+        if arrow render_collider(arrow.position, arrow.collider);
         
         swap_buffers(window);
         
@@ -357,11 +374,20 @@ move_player :: () {
 
     velocity := direction * PLAYER_SPEED * delta;
     player.position += velocity;
+
+    for enemies {
+        min_distance := player.collider.radius + it.collider.radius;
+        if distance(player.position, it.position) < min_distance log("OVERLAP!");
+    }
 }
 
 move_arrow :: () {
     if !arrow return;
     arrow.position += arrow.direction * arrow.speed * delta;
+    for enemies {
+        min_distance := arrow.collider.radius + it.collider.radius;
+        if distance(arrow.position, it.position) < min_distance log("ARROW HIT!");
+    }
 }
 
 move_crosshair :: () {
@@ -390,6 +416,26 @@ move_enemies :: () {
         
         it.position += direction * it.speed * delta;
     }
+}
+
+render_collider :: (position: Vector2, using collider: Collider) {
+    set_shader_for_color();
+    immediate_begin();
+
+    pos := position - camera_position + camera_offset;
+    
+    x0 := pos.x - radius;
+    y0 := pos.y - radius;
+    x1 := pos.x + radius;
+    y1 := pos.y + radius; 
+    
+    v0 := Vector2.{x0, y0};
+    v1 := Vector2.{x1, y0};
+    v2 := Vector2.{x1, y1};
+    v3 := Vector2.{x0, y1};
+
+    immediate_quad(v0, v1, v2, v3, rgba(1.0, 1.0, 1.0, 0.1));
+    immediate_flush();
 }
 
 render_sprite :: (position: Vector2, using sprite: Sprite) {
