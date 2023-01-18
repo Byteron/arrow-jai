@@ -188,13 +188,10 @@ main :: () {
         clear_render_target(0.15, 0.08, 0.08, 1.0);
 
         for entities {
-            if it.sprite.exists render_sprite(it.position, it.sprite);
-            if it.sprite2.exists render_sprite(it.position, it.sprite2);
-            if it.health.exists render_sprite(it.position, it.health_bar);
+            if it.has_sprite render_sprite(it.position, it.sprite);
+            if it.has_sprite2 render_sprite(it.position, it.sprite2);
+            if it.has_health render_sprite(it.position, it.health_bar);
         }
-        for entities if it.sprite.exists render_sprite(it.position, it.sprite);
-        for entities if it.sprite2.exists render_sprite(it.position, it.sprite);
-        for entities if it.health.exists render_sprite(it.position, it.health_bar);
 
         // Debug
         #if DRAW_COLLISIONS {
@@ -232,12 +229,13 @@ spawn_tile :: (id: int, x: int, y: int) {
     spawn(.{
         x = cast(float)x,
         y = cast(float)y,
-        sprite = Some(Sprite.{
+        has_sprite = true,
+        sprite = .{
             texture = *tile_texture,
             v_frames = 2,
             h_frames = 3,
             frame = id,
-        })
+        },
     });
 }
 
@@ -248,9 +246,10 @@ spawn_arrow :: (position: Vector2, direction: Vector2, charge: u8) {
         direction = direction,
         charge = charge,
         speed =  600.0 + 300.0 * charge,
-        sprite = Some(Sprite.{
+        has_sprite = true,
+        sprite = .{
             texture = *arrow_texture,
-        }),
+        },
     });
 }
 
@@ -264,19 +263,21 @@ spawn_enemy :: (x: float, y: float) {
     set(enemy, .{
         x = x,
         y = y,
-        sprite = Some(Sprite.{
+        has_sprite = true,
+        sprite = .{
             texture = *enemy_texture,
             v_frames = 4,
             h_frames = 6,
             frame = 0,
-        }),
+        },
+        has_health = true,
         health_bar = .{
             texture = *heart_texture,
             clip_to_region = true,
             region = Rect2.{ size = Vector2.{ texture_width, 14 } },
             offset = .{0, 32},
         },
-        health = Some(Health.{ value = cast(s16) health }),
+        health = cast(s16) health,
         speed = speed,
     });
 
@@ -288,18 +289,21 @@ spawn_player :: (x: float, y: float) {
     set(player_entity, .{
         x = x,
         y = y,
-        sprite = Some(Sprite.{
+        has_sprite = true,
+        sprite = .{
             texture = *player_body_texture,
-        }),
-        sprite2 = Some(Sprite.{
+        },
+        has_sprite2 = true,
+        sprite2 = .{
             texture = *player_legs_texture,
             h_frames = 6,
             v_frames = 2,
-        }),
+        },
     });
 
     crosshair_entity = spawn();
     set(crosshair_entity, .{
+        has_sprite = true,
         sprite = .{
             texture = *crosshair_texture,
         }
@@ -310,16 +314,16 @@ damage_enemy :: (enemy_entity: Entity, damage: s16) {
     using entity := get(enemy_entity);
     
     hit = true;
-    prev_health := health.value;
-    health.value -= damage;
-    Clamp(*health.value, 0, prev_health);
+    prev_health := health;
+    health -= damage;
+    Clamp(*health, 0, prev_health);
     print("Health: %\n", health);
     
-    if health.value == 0 {
+    if health == 0 {
         array_unordered_remove_by_value(*enemies, enemy_entity);
         despawn(enemy_entity);
     } else {
-        health_bar.region.size.x = 19.0 * health.value;
+        health_bar.region.size.x = 19.0 * health;
     }
 }
 

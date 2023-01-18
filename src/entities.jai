@@ -1,4 +1,3 @@
-
 unused_ids: [..]u32;
 entities: [..]EntityData;
 gens: [..]s32;
@@ -13,36 +12,25 @@ operator == :: inline (a: Entity, b: Entity) -> bool {
 }
 
 EntityData :: struct {
-    // Common
     using position: Vector2;
+	
+    has_health: bool;
+	has_sprite: bool;
+	has_sprite2: bool;
 
-    // Rendering
-    sprite: Option(Sprite);
-    sprite2: Option(Sprite);
+    sprite: Sprite;
+    sprite2: Sprite;
     
-    // Physics
     collider: Collider;
-    
-    // Health
-    health: Option(Health);
+
+    health: s16;
     health_bar: Sprite = ---;
     hit: bool;
     
-    // Movement
     speed: f32;
     direction: Vector2;
 
-    // Arrow
     charge: s16;
-}
-
-Option :: struct ($T: Type) {
-    exists: bool;
-    #as using _v: T = ---;
-}
-
-Some :: (value: $T) -> Option(T) {
-    return Option(T).{ exists = true, _v = value };
 }
 
 Sprite :: struct {
@@ -61,10 +49,6 @@ Sprite :: struct {
 
 Collider :: struct {
     radius := 16.0;
-}
-
-Health :: struct {
-    value: s16;
 }
 
 spawn :: (value: EntityData = .{}) -> Entity {
