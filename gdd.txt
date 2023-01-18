@@ -12,7 +12,7 @@ TODO
 - [x] limit camera to arena bounds
 - [x] Move Enemies
 - [x] Shoot Arrow
-- [ ] Sound Effects
+- [x] Sound Effects
 - [ ] Collision Detection
 - [ ] Collect Arrow
     - [ ] Arrow Entity

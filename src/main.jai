@@ -15,6 +15,7 @@
 #import "Random";
 #import "Wav_File";
 #import "Sound_Player";
+#import "Thread";
 
 f32 :: float32;
 f64 :: float64;
@@ -27,9 +28,9 @@ A :: 65;
 S :: 83;
 D :: 68;
 
-sound_bow_charge_1: *Mixer_Sound_Data;
-sound_bow_charge_2: *Mixer_Sound_Data;
-sound_bow_charge_3: *Mixer_Sound_Data;
+sound_bow_charge: [..]*Mixer_Sound_Data;
+
+sound_player: *Sound_Player;
 
 WINDOW_SCALE :: 0.5;
 WINDOW_WIDTH :: 1920;
@@ -134,9 +135,15 @@ main :: () {
 
     window_width, window_height := get_render_dimensions(window);
 
+    sound_player = New(Sound_Player);
+    sound_player.update_history = true;
+    
     init_textures();
     init_sounds();
 
+    success := init(sound_player, xx window, true, true);
+    // assert(success); // @Incomplete We need an audio pass. Low priority (for now).
+    
     spawn_player(300, 400);
 
     for y: 0..ARENA_HEIGHT-1 {
@@ -183,7 +190,7 @@ main :: () {
             if charge > prev_charge {
                 prev_charge = charge;
                 log("Charge: %", charge);
-                // TODO: play charge sound here
+                play_sound(sound_bow_charge[charge]);
             }
         }
         
@@ -201,7 +208,9 @@ main :: () {
         move_crosshair();
         move_camera();
         move_enemies();
-      
+        
+        update_sound_player(delta);
+              
         clear_render_target(0.15, 0.08, 0.08, 1.0);
 
         for tiles render_sprite(it.position, it.sprite);
@@ -218,7 +227,7 @@ main :: () {
         
         swap_buffers(window);
         
-        print("FPS: %, s: %\n", 1.0 / delta , delta);
+        // print("FPS: %, s: %\n", 1.0 / delta , delta);
     }
 }
 
@@ -233,9 +242,12 @@ init_textures :: () {
 }
 
 init_sounds :: () {
-    sound_bow_charge_1 = load_sound("assets/sfx/bow_charge_1.wav");
-    sound_bow_charge_2 = load_sound("assets/sfx/bow_charge_2.wav");
-    sound_bow_charge_3 = load_sound("assets/sfx/bow_charge_3.wav");
+    sound_bow_charge_1 := load_sound("assets/sfx/bow_charge_1.wav");
+    sound_bow_charge_2 := load_sound("assets/sfx/bow_charge_2.wav");
+    sound_bow_charge_3 := load_sound("assets/sfx/bow_charge_3.wav");
+    array_add(*sound_bow_charge, sound_bow_charge_1);
+    array_add(*sound_bow_charge, sound_bow_charge_2);
+    array_add(*sound_bow_charge, sound_bow_charge_3);
 }
 
 spawn_tile :: (id: int, x: int, y: int) {
@@ -312,6 +324,25 @@ spawn_player :: (x: float, y: float) {
             texture = *crosshair_texture,
         }
     };
+}
+
+update_sound_player :: (delta: float) {
+    //
+    // Move sound streams forward by dt.
+    //
+    lock(*sound_player.sound_mutex);
+    defer unlock(*sound_player.sound_mutex);
+
+    pre_entity_update(sound_player);
+
+    //
+    // @Incomplete We're not removing sound streams once they're consumed.
+    //
+    for sound_player.streams {
+        it.marked = true;
+    }
+
+    post_entity_update(sound_player, delta);
 }
 
 move_player :: () {
@@ -444,8 +475,7 @@ load_texture :: (filename: string) -> Texture {
     return result;
 }
 
-load_sound :: (basename: string) -> *Mixer_Sound_Data {
-    name := basename;
+load_sound :: (name: string) -> *Mixer_Sound_Data {
     data := load_audio_file(name);
 
     if !data {
@@ -510,6 +540,23 @@ load_audio_file :: (name : string) -> *Mixer_Sound_Data {
     }
 
     return data;
+}
+
+play_sound :: (data: *Mixer_Sound_Data, perturb: bool = true) -> *Sound_Stream {
+    stream := make_stream(sound_player, data);
+
+    if stream {
+        stream.sound_data = data;
+    }
+
+    if perturb && stream {
+        stream.user_volume_scale = random_get_within_range(0.7, 1);
+        stream.desired_rate = random_get_within_range(0.7, 1.22);
+    }
+
+    stream.repeat_end_position = cast(int)(data.sampling_rate * 234.475);  // @Temporary @Hack! We do not get the duration by default from an ogg file...
+    
+    return stream;
 }
 
 get_direction :: (a: Vector2, b: Vector2) -> Vector2 {
