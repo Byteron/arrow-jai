@@ -75,7 +75,15 @@ Rect2 :: struct {
 
 Entity :: struct {
     using position: Vector2;
-    using sprite: Sprite;
+    direction: Vector2;
+    speed: float;
+    charge: s16;
+    sprite: Sprite;
+    sprite2: Sprite;
+    health: s16;
+    health_bar: Sprite;
+    hit: bool; 
+    collider: Collider;
 }
 
 Sprite :: struct {
@@ -96,39 +104,12 @@ Collider :: struct {
     radius := 16.0;
 }
 
-Player :: struct {
-    #as using entity: Entity;
-    legs_sprite: Sprite;
-    health: s16;
-    health_bar: Sprite;
-    collider: Collider;
-}
+player: Entity;
+arrow: *Entity;
 
-Enemy :: struct {
-    #as using entity: Entity;
-    speed: f32;
-    health: s16;
-    hit: bool;
-    health_bar: Sprite;
-    collider: Collider;
-}
+enemies: [..]*Entity;
+tiles: [..]Entity;
 
-Tile :: struct {
-    #as using entity: Entity;
-}
-
-Arrow :: struct {
-    #as using entity: Entity;
-    direction: Vector2;
-    charge: u8;
-    speed: f32;
-    collider: Collider;
-}
-
-player: Player;
-arrow: *Arrow;
-enemies: [..]*Enemy;
-tiles: [..]Tile;
 crosshair: Entity;
 
 camera_position: Vector2;
@@ -233,7 +214,7 @@ main :: () {
         
         for enemies render_sprite(it.position, it.sprite);
         
-        render_sprite(player.position, player.legs_sprite);
+        render_sprite(player.position, player.sprite2);
         render_sprite(player.position, player.sprite);
         
         if arrow render_sprite(arrow.position, arrow.sprite);
@@ -275,7 +256,7 @@ init_sounds :: () {
 }
 
 spawn_tile :: (id: int, x: int, y: int) {
-    tile := Tile.{
+    tile := Entity.{
         x = cast(float)x,
         y = cast(float)y,
         sprite = .{
@@ -289,7 +270,7 @@ spawn_tile :: (id: int, x: int, y: int) {
 }
 
 spawn_arrow :: (position: Vector2, direction: Vector2, charge: u8) {
-    if !arrow arrow = New(Arrow);
+    if !arrow arrow = New(Entity);
     <<arrow = .{
         position = position,
         direction = direction,
@@ -307,7 +288,7 @@ spawn_enemy :: (x: float, y: float) {
     
     texture_width := 19.0 * health;
     
-    enemy := New(Enemy);
+    enemy := New(Entity);
     <<enemy = .{
         x = x,
         y = y,
@@ -331,13 +312,13 @@ spawn_enemy :: (x: float, y: float) {
 }
 
 spawn_player :: (x: float, y: float) {
-    player = Player.{
+    player = Entity.{
         x = x,
         y = y,
         sprite = .{
             texture = *player_body_texture,
         },
-        legs_sprite = .{
+        sprite2 = .{
             texture = *player_legs_texture,
             h_frames = 6,
             v_frames = 2,
@@ -351,7 +332,7 @@ spawn_player :: (x: float, y: float) {
     };
 }
 
-damage_enemy :: (using enemy: *Enemy, damage: u8) {
+damage_enemy :: (using enemy: *Entity, damage: s16) {
     hit = true;
     prev_health := health;
     health -= damage;
