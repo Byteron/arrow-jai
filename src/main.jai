@@ -3,7 +3,9 @@
     Reimplementation of the GMTK 2019 Game Jam Entry of the same name.
 */
 
-#import "Basic";
+using _b :: #import "Basic";
+#poke_name _b operator==;
+
 #import "Math";
 #import "Window_Creation";
 #import "System";
@@ -16,6 +18,8 @@
 #import "Wav_File";
 #import "Sound_Player";
 #import "Thread";
+
+#load "entities.jai";
 
 f32 :: float32;
 f64 :: float64;
@@ -73,63 +77,12 @@ Rect2 :: struct {
     size: Vector2;
 }
 
-Entity :: struct {
-    using position: Vector2;
-    using sprite: Sprite;
-}
+player_entity: Entity;
+arrow_entity: Entity;
 
-Sprite :: struct {
-    texture: *Texture;
-    offset := Vector2.{0, 0};
-    centered := true;
-    rotation := 0.0;
+enemies: [..]Entity;
 
-    clip_to_region := false;
-    region: Rect2;
-    
-    h_frames := 0;
-    v_frames := 0;
-    frame := 0;
-}
-
-Collider :: struct {
-    radius := 16.0;
-}
-
-Player :: struct {
-    #as using entity: Entity;
-    legs_sprite: Sprite;
-    health: s16;
-    health_bar: Sprite;
-    collider: Collider;
-}
-
-Enemy :: struct {
-    #as using entity: Entity;
-    speed: f32;
-    health: s16;
-    hit: bool;
-    health_bar: Sprite;
-    collider: Collider;
-}
-
-Tile :: struct {
-    #as using entity: Entity;
-}
-
-Arrow :: struct {
-    #as using entity: Entity;
-    direction: Vector2;
-    charge: u8;
-    speed: f32;
-    collider: Collider;
-}
-
-player: Player;
-arrow: *Arrow;
-enemies: [..]*Enemy;
-tiles: [..]Tile;
-crosshair: Entity;
+crosshair_entity: Entity;
 
 camera_position: Vector2;
 camera_offset: Vector2;
@@ -196,6 +149,9 @@ main :: () {
         }
 
         // Simulation
+        player := get(player_entity);
+        arrow := get(arrow_entity);
+        crosshair := get(crosshair_entity);
         
         if aiming && charge < 2 {
             charge_time += delta;
@@ -208,7 +164,10 @@ main :: () {
         }
         
         if shoot {
-            for enemies it.hit = false;
+            for enemies {
+                enemy := get(it);
+                enemy.hit = false;
+            }
             direction := get_direction(player.position, crosshair.position);
             spawn_arrow(player.position, direction, cast(u8) charge);
             shoot = false;
@@ -228,19 +187,14 @@ main :: () {
         // Render 
         clear_render_target(0.15, 0.08, 0.08, 1.0);
 
-        // Sprites
-        for tiles render_sprite(it.position, it.sprite);
-        
-        for enemies render_sprite(it.position, it.sprite);
-        
-        render_sprite(player.position, player.legs_sprite);
-        render_sprite(player.position, player.sprite);
-        
-        if arrow render_sprite(arrow.position, arrow.sprite);
-        
-        // UI
-        for enemies render_sprite(it.position, it.health_bar);
-        render_sprite(crosshair.position, crosshair.sprite);
+        for entities {
+            if it.sprite.exists render_sprite(it.position, it.sprite);
+            if it.sprite2.exists render_sprite(it.position, it.sprite2);
+            if it.health.exists render_sprite(it.position, it.health_bar);
+        }
+        for entities if it.sprite.exists render_sprite(it.position, it.sprite);
+        for entities if it.sprite2.exists render_sprite(it.position, it.sprite);
+        for entities if it.health.exists render_sprite(it.position, it.health_bar);
 
         // Debug
         #if DRAW_COLLISIONS {
@@ -275,30 +229,29 @@ init_sounds :: () {
 }
 
 spawn_tile :: (id: int, x: int, y: int) {
-    tile := Tile.{
+    spawn(.{
         x = cast(float)x,
         y = cast(float)y,
-        sprite = .{
+        sprite = Some(Sprite.{
             texture = *tile_texture,
             v_frames = 2,
             h_frames = 3,
             frame = id,
-        }
-    };
-    array_add(*tiles, tile);
+        })
+    });
 }
 
 spawn_arrow :: (position: Vector2, direction: Vector2, charge: u8) {
-    if !arrow arrow = New(Arrow);
-    <<arrow = .{
+    if !is_alive(arrow_entity) arrow_entity = spawn();
+    set(arrow_entity, .{
         position = position,
         direction = direction,
         charge = charge,
-        speed = 600.0 + 300.0 * charge,
-        sprite = .{
+        speed =  600.0 + 300.0 * charge,
+        sprite = Some(Sprite.{
             texture = *arrow_texture,
-        },
-    };
+        }),
+    });
 }
 
 spawn_enemy :: (x: float, y: float) {
@@ -307,62 +260,66 @@ spawn_enemy :: (x: float, y: float) {
     
     texture_width := 19.0 * health;
     
-    enemy := New(Enemy);
-    <<enemy = .{
+    enemy := spawn();
+    set(enemy, .{
         x = x,
         y = y,
-        sprite = .{
+        sprite = Some(Sprite.{
             texture = *enemy_texture,
             v_frames = 4,
             h_frames = 6,
             frame = 0,
-        },
+        }),
         health_bar = .{
             texture = *heart_texture,
             clip_to_region = true,
             region = Rect2.{ size = Vector2.{ texture_width, 14 } },
             offset = .{0, 32},
         },
-        health = cast(u8) health,
+        health = Some(Health.{ value = cast(s16) health }),
         speed = speed,
-    };
+    });
 
     array_add(*enemies, enemy);
 }
 
 spawn_player :: (x: float, y: float) {
-    player = Player.{
+    player_entity = spawn();
+    set(player_entity, .{
         x = x,
         y = y,
-        sprite = .{
+        sprite = Some(Sprite.{
             texture = *player_body_texture,
-        },
-        legs_sprite = .{
+        }),
+        sprite2 = Some(Sprite.{
             texture = *player_legs_texture,
             h_frames = 6,
             v_frames = 2,
-        },
-    };
+        }),
+    });
 
-    crosshair = Entity.{
+    crosshair_entity = spawn();
+    set(crosshair_entity, .{
         sprite = .{
             texture = *crosshair_texture,
         }
-    };
+    });
 }
 
-damage_enemy :: (using enemy: *Enemy, damage: u8) {
+damage_enemy :: (enemy_entity: Entity, damage: s16) {
+    using entity := get(enemy_entity);
+    
     hit = true;
-    prev_health := health;
-    health -= damage;
-    Clamp(*health, 0, prev_health);
+    prev_health := health.value;
+    health.value -= damage;
+    Clamp(*health.value, 0, prev_health);
     print("Health: %\n", health);
     
-    if health == 0 {
-        array_unordered_remove_by_value(*enemies, enemy);
-        free(enemy);
+    if health.value == 0 {
+        array_unordered_remove_by_value(*enemies, enemy_entity);
+        despawn(enemy_entity);
     } else {
-        health_bar.region.size.x = 19.0 * health;
+        health_bar.region.size.x = 19.0 * health.value;
     }
 }
 
@@ -386,6 +343,8 @@ update_sound_player :: (delta: float) {
 }
 
 move_player :: () {
+    player := get(player_entity);
+    
     direction := Vector2.{0, 0};
     
     if move_right direction.x += 1;
@@ -399,22 +358,30 @@ move_player :: () {
     player.position += velocity;
 
     for enemies {
-        min_distance := player.collider.radius + it.collider.radius;
-        if distance(player.position, it.position) < min_distance log("OVERLAP!");
+        enemy := get(it);
+        min_distance := player.collider.radius + enemy.collider.radius;
+        if distance(player.position, enemy.position) < min_distance log("OVERLAP!");
     }
 }
 
 move_arrow :: () {
-    if !arrow return;
+    if !is_alive(arrow_entity) return;
+    arrow := get(arrow_entity);
+    
     arrow.position += arrow.direction * arrow.speed * delta;
+    
     for enemies {
-        if it.hit continue;
-        min_distance := arrow.collider.radius + it.collider.radius;
-        if distance(arrow.position, it.position) < min_distance damage_enemy(it, arrow.charge + 1);
+        enemy := get(it);
+        if enemy.hit continue;
+        min_distance := arrow.collider.radius + enemy.collider.radius;
+        if distance(arrow.position, enemy.position) < min_distance damage_enemy(it, arrow.charge + 1);
     }
 }
 
 move_crosshair :: () {
+    player := get(player_entity);
+    crosshair := get(crosshair_entity);
+    
     world_position := mouse_position + camera_position;
     direction := get_direction(player.position, world_position);
     position := direction * 100;
@@ -422,23 +389,29 @@ move_crosshair :: () {
 }
 
 move_camera :: () {
+    player := get(player_entity);
     camera_position = lerp(camera_position, player.position, 0.01);
     Clamp(*camera_position.x, camera_offset.x + 16, TILE_SIZE * ARENA_WIDTH - camera_offset.x - 16);
     Clamp(*camera_position.y, camera_offset.y + 16, TILE_SIZE * ARENA_HEIGHT - camera_offset.y - 16);
 }
 
 move_enemies :: () {
+    player := get(player_entity);
+
     for enemies {
-        direction := get_direction(it.position, player.position);
+        enemy := get(it);
+        direction := get_direction(enemy.position, player.position);
         
         for other: enemies {
-            if (distance(it.position, other.position) < 40) {
-                direction += get_direction(other.position, it.position);
+            other_enemy := get(other);
+            
+            if (distance(enemy.position, other_enemy.position) < 40) {
+                direction += get_direction(other_enemy.position, enemy.position);
                 direction /= 2;
             }
         }
         
-        it.position += direction * it.speed * delta;
+        enemy.position += direction * enemy.speed * delta;
     }
 }
 
