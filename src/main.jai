@@ -28,9 +28,7 @@ A :: 65;
 S :: 83;
 D :: 68;
 
-sound_bow_charge: [..]*Mixer_Sound_Data;
-
-sound_player: *Sound_Player;
+DRAW_COLLISIONS :: false;
 
 WINDOW_SCALE :: 0.5;
 WINDOW_WIDTH :: 1920;
@@ -42,6 +40,10 @@ ARENA_WIDTH :: 40;
 ARENA_HEIGHT :: 30;
 
 PLAYER_SPEED :: 240.0;
+
+sound_bow_charge: [..]*Mixer_Sound_Data;
+
+sound_player: *Sound_Player;
 
 delta: f32;
 
@@ -97,15 +99,16 @@ Collider :: struct {
 Player :: struct {
     #as using entity: Entity;
     legs_sprite: Sprite;
-    health: u8;
+    health: s16;
     health_bar: Sprite;
     collider: Collider;
 }
 
 Enemy :: struct {
     #as using entity: Entity;
-    health: u8;
     speed: f32;
+    health: s16;
+    hit: bool;
     health_bar: Sprite;
     collider: Collider;
 }
@@ -117,6 +120,7 @@ Tile :: struct {
 Arrow :: struct {
     #as using entity: Entity;
     direction: Vector2;
+    charge: u8;
     speed: f32;
     collider: Collider;
 }
@@ -204,8 +208,9 @@ main :: () {
         }
         
         if shoot {
+            for enemies it.hit = false;
             direction := get_direction(player.position, crosshair.position);
-            spawn_arrow(player.position, direction, 600.0 + 300 * charge);
+            spawn_arrow(player.position, direction, cast(u8) charge);
             shoot = false;
             charge_time = 0;
             charge = 0;
@@ -238,9 +243,11 @@ main :: () {
         render_sprite(crosshair.position, crosshair.sprite);
 
         // Debug
-        for enemies render_collider(it.position, it.collider);
-        render_collider(player.position, player.collider);
-        if arrow render_collider(arrow.position, arrow.collider);
+        #if DRAW_COLLISIONS {
+            for enemies render_collider(it.position, it.collider);
+            render_collider(player.position, player.collider);
+            if arrow render_collider(arrow.position, arrow.collider);
+        }
         
         swap_buffers(window);
         
@@ -281,12 +288,13 @@ spawn_tile :: (id: int, x: int, y: int) {
     array_add(*tiles, tile);
 }
 
-spawn_arrow :: (position: Vector2, direction: Vector2, speed: f32) {
+spawn_arrow :: (position: Vector2, direction: Vector2, charge: u8) {
     if !arrow arrow = New(Arrow);
     <<arrow = .{
         position = position,
         direction = direction,
-        speed = speed,
+        charge = charge,
+        speed = 600.0 + 300.0 * charge,
         sprite = .{
             texture = *arrow_texture,
         },
@@ -343,6 +351,21 @@ spawn_player :: (x: float, y: float) {
     };
 }
 
+damage_enemy :: (using enemy: *Enemy, damage: u8) {
+    hit = true;
+    prev_health := health;
+    health -= damage;
+    Clamp(*health, 0, prev_health);
+    print("Health: %\n", health);
+    
+    if health == 0 {
+        array_unordered_remove_by_value(*enemies, enemy);
+        free(enemy);
+    } else {
+        health_bar.region.size.x = 19.0 * health;
+    }
+}
+
 update_sound_player :: (delta: float) {
     //
     // Move sound streams forward by dt.
@@ -385,8 +408,9 @@ move_arrow :: () {
     if !arrow return;
     arrow.position += arrow.direction * arrow.speed * delta;
     for enemies {
+        if it.hit continue;
         min_distance := arrow.collider.radius + it.collider.radius;
-        if distance(arrow.position, it.position) < min_distance log("ARROW HIT!");
+        if distance(arrow.position, it.position) < min_distance damage_enemy(it, arrow.charge + 1);
     }
 }
 
