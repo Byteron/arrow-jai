@@ -18,6 +18,7 @@ TODO
     - [x] Player Enemy
     - [ ] Arrow / Entity Wall
 - [x] Kill Entities on Health 0
+- [ ] Arrow travel distance
 - [ ] collect arrow
 - [ ] Sprite Sheet Animations
 - [ ] Directional Animations, if we want that
