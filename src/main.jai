@@ -120,8 +120,11 @@ Tile :: struct {
 Arrow :: struct {
     #as using entity: Entity;
     direction: Vector2;
-    charge: int;
     speed: float;
+    distance: float;
+    max_distance: float;
+    dropped: bool;
+    charge: int;
     collider: Collider;
 }
 
@@ -191,34 +194,38 @@ main :: () {
                     if it.key_code == D move_right = it.key_pressed;
 
                     if it.key_code == .MOUSE_BUTTON_LEFT aiming = it.key_pressed;
-                    if it.key_code == .MOUSE_BUTTON_LEFT && !it.key_pressed shoot = true;                    
+                    if !arrow && it.key_code == .MOUSE_BUTTON_LEFT && !it.key_pressed shoot = true;                    
             }
         }
 
         // Simulation
         
-        if aiming && charge < 2 {
-            charge_time += delta;
-            charge = cast(int) charge_time;
-            if charge > prev_charge {
-                prev_charge = charge;
-                log("Charge: %", charge);
-                play_sound(sound_bow_charge[charge]);
+        if !arrow {
+            if aiming && charge < 2 {
+                charge_time += delta;
+                charge = cast(int) charge_time;
+                if charge > prev_charge {
+                    prev_charge = charge;
+                    log("Charge: %", charge);
+                    play_sound(sound_bow_charge[charge]);
+                }
             }
-        }
-        
-        if shoot {
-            for enemies it.hit = false;
-            direction := get_direction(player.position, crosshair.position);
-            spawn_arrow(player.position, direction, charge);
-            shoot = false;
-            charge_time = 0;
-            charge = 0;
-            prev_charge = -1;
+            
+            if shoot {
+                for enemies it.hit = false;
+                direction := get_direction(player.position, crosshair.position);
+                spawn_arrow(player.position, direction, charge);
+                shoot = false;
+                charge_time = 0;
+                charge = 0;
+                prev_charge = -1;
+            }
+            
+        } else {
+            move_arrow();
         }
 
         move_player();
-        move_arrow();
         move_crosshair();
         move_camera();
         move_enemies();
@@ -289,12 +296,15 @@ spawn_tile :: (id: int, x: int, y: int) {
 }
 
 spawn_arrow :: (position: Vector2, direction: Vector2, charge: int) {
-    if !arrow arrow = New(Arrow);
+    arrow = New(Arrow);
+    speed := 800.0 + 500.0 * charge;
+    dist := cast(float) 200 + charge * 200;
     <<arrow = .{
         position = position,
         direction = direction,
         charge = charge,
-        speed = 600.0 + 300.0 * charge,
+        speed = speed,
+        max_distance = dist,
         sprite = .{
             texture = *arrow_texture,
         },
@@ -383,15 +393,37 @@ move_player :: () {
         min_distance := player.collider.radius + it.collider.radius;
         if distance(player.position, it.position) < min_distance log("OVERLAP!");
     }
+
+    if !arrow return;
+    
+    dist := arrow.collider.radius + player.collider.radius;
+    collide := distance(arrow.position, player.position) < dist;
+
+    if arrow.dropped && collide {
+        log("arrow collected");
+        free(arrow);
+        arrow = null;
+    }
 }
 
 move_arrow :: () {
     if !arrow return;
-    arrow.position += arrow.direction * arrow.speed * delta;
+    if arrow.dropped return;
+
+    vel := arrow.direction * arrow.speed * delta;
+    dist := distance(arrow.position, arrow.position + vel);
+    arrow.position += vel;
+    arrow.distance += dist;
+    
     for enemies {
         if it.hit continue;
         min_distance := arrow.collider.radius + it.collider.radius;
         if distance(arrow.position, it.position) < min_distance damage_enemy(it, arrow.charge + 1);
+    }
+
+    if arrow.distance > arrow.max_distance {
+        arrow.speed = 0;
+        arrow.dropped = true;
     }
 }
 
