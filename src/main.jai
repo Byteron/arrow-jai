@@ -17,9 +17,6 @@
 #import "Sound_Player";
 #import "Thread";
 
-f32 :: float32;
-f64 :: float64;
-
 WAV :: "wav";
 OGG :: "ogg";
 
@@ -45,7 +42,7 @@ sound_bow_charge: [..]*Mixer_Sound_Data;
 
 sound_player: *Sound_Player;
 
-delta: f32;
+delta: float;
 
 mouse_position: Vector2;
 
@@ -56,7 +53,7 @@ move_down: u32;
 
 shoot: bool;
 aiming: u32;
-charge_time: f32;
+charge_time: float;
 charge: s8;
 prev_charge: s8 = -1;
 
@@ -106,7 +103,7 @@ Player :: struct {
 
 Enemy :: struct {
     #as using entity: Entity;
-    speed: f32;
+    speed: float;
     health: s16;
     hit: bool;
     health_bar: Sprite;
@@ -121,7 +118,7 @@ Arrow :: struct {
     #as using entity: Entity;
     direction: Vector2;
     charge: u8;
-    speed: f32;
+    speed: float;
     collider: Collider;
 }
 
@@ -138,8 +135,8 @@ main :: () {
     width := cast(int) (WINDOW_WIDTH * WINDOW_SCALE);
     height := cast(int) (WINDOW_HEIGHT * WINDOW_SCALE);
 
-    camera_offset.x = cast(f32) width / 2;
-    camera_offset.y = cast(f32) height / 2;
+    camera_offset.x = cast(float) width / 2;
+    camera_offset.y = cast(float) height / 2;
     
     window := create_window(window_name = "One Arrow Colosseum", width = width, height = height);
     set_render_target(window);
@@ -172,11 +169,11 @@ main :: () {
         update_window_events();
         
         mouse_x, mouse_y := get_mouse_pointer_position();
-        mouse_position = Vector2.{cast(f32)mouse_x, -cast(f32)mouse_y + window_height} - camera_offset;
+        mouse_position = Vector2.{cast(float)mouse_x, -cast(float)mouse_y + window_height} - camera_offset;
 
         new_time := get_time();
 
-        delta = cast(f32) (new_time - time);
+        delta = cast(float) (new_time - time);
         time = new_time;
     
         for events_this_frame {
@@ -463,7 +460,7 @@ render_collider :: (position: Vector2, using collider: Collider) {
 }
 
 render_sprite :: (position: Vector2, using sprite: Sprite) {
-    size := Vector2.{cast(f32)texture.width, cast(f32)texture.height};
+    size := Vector2.{cast(float)texture.width, cast(float)texture.height};
 
     if clip_to_region size = region.size;
     
