@@ -40,6 +40,7 @@ ARENA_WIDTH :: 40;
 ARENA_HEIGHT :: 30;
 
 PLAYER_SPEED :: 240.0;
+CHARGE_LIMIT :: 3;
 
 sound_bow_charge: [..]*Mixer_Sound_Data;
 
@@ -56,9 +57,9 @@ move_down: u32;
 
 shoot: bool;
 aiming: int;
-charge_time: float;
-charge: int;
-prev_charge: int = -1;
+charge_time := 1.0;
+charge := 1;
+prev_charge := 0;
 
 arrow_texture: Texture;
 player_body_texture: Texture;
@@ -125,6 +126,7 @@ Arrow :: struct {
     max_distance: float;
     dropped: bool;
     charge: int;
+    hits: int;
     collider: Collider;
 }
 
@@ -201,13 +203,13 @@ main :: () {
         // Simulation
         
         if !arrow {
-            if aiming && charge < 2 {
+            if aiming && charge < CHARGE_LIMIT {
                 charge_time += delta;
                 charge = cast(int) charge_time;
                 if charge > prev_charge {
                     prev_charge = charge;
                     log("Charge: %", charge);
-                    play_sound(sound_bow_charge[charge]);
+                    play_sound(sound_bow_charge[charge - 1]);
                 }
             }
             
@@ -216,9 +218,9 @@ main :: () {
                 direction := get_direction(player.position, crosshair.position);
                 spawn_arrow(player.position, direction, charge);
                 shoot = false;
-                charge_time = 0;
-                charge = 0;
-                prev_charge = -1;
+                charge_time = 1;
+                charge = 1;
+                prev_charge = 0;
             }
             
         } else {
@@ -418,12 +420,16 @@ move_arrow :: () {
     for enemies {
         if it.hit continue;
         min_distance := arrow.collider.radius + it.collider.radius;
-        if distance(arrow.position, it.position) < min_distance damage_enemy(it, arrow.charge + 1);
+        if distance(arrow.position, it.position) < min_distance {
+            arrow.hits += 1;
+            damage_enemy(it, arrow.charge);
+        }
     }
 
-    if arrow.distance > arrow.max_distance {
+    if arrow.distance > arrow.max_distance || arrow.hits == arrow.charge {
         arrow.speed = 0;
         arrow.dropped = true;
+        arrow.hits = 0;
     }
 }
 
