@@ -164,7 +164,7 @@ main :: () {
 
     for y: 0..ARENA_HEIGHT-1 {
         for x: 0..ARENA_WIDTH-1 {
-            spawn_tile(cast(int)random_get_within_range(0, 5), x * TILE_SIZE, y * TILE_SIZE);
+            spawn_tile(xx random_get_within_range(0, 5), x * TILE_SIZE, y * TILE_SIZE);
         }
     }
 
@@ -177,11 +177,11 @@ main :: () {
         update_window_events();
         
         mouse_x, mouse_y := get_mouse_pointer_position();
-        mouse_position = Vector2.{cast(float)mouse_x, -cast(float)mouse_y + window_height} - camera_offset;
+        mouse_position = Vector2.{ xx mouse_x, -cast(float)mouse_y + window_height} - camera_offset;
 
         new_time := get_time();
 
-        delta = cast(float) (new_time - time);
+        delta = xx (new_time - time);
         time = new_time;
     
         for events_this_frame {
@@ -205,7 +205,7 @@ main :: () {
         if !arrow {
             if aiming && charge < CHARGE_LIMIT {
                 charge_time += delta;
-                charge = cast(int) charge_time;
+                charge = xx charge_time;
                 if charge > prev_charge {
                     prev_charge = charge;
                     log("Charge: %", charge);
@@ -285,8 +285,8 @@ init_sounds :: () {
 
 spawn_tile :: (id: int, x: int, y: int) {
     tile := Tile.{
-        x = cast(float)x,
-        y = cast(float)y,
+        x = xx x,
+        y = xx y,
         sprite = .{
             texture = *tile_texture,
             v_frames = 2,
@@ -338,7 +338,7 @@ spawn_enemy :: (x: float, y: float) {
             region = Rect2.{ size = Vector2.{ texture_width, 14 } },
             offset = .{0, 32},
         },
-        health = cast(u8) health,
+        health = xx health,
         speed = speed,
     };
 
