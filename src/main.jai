@@ -301,6 +301,8 @@ spawn_arrow :: (position: Vector2, direction: Vector2, charge: int) {
     arrow = New(Arrow);
     speed := 800.0 + 500.0 * charge;
     dist := cast(float) 200 + charge * 200;
+    rotation := PI - atan2(direction.x, direction.y);
+    
     <<arrow = .{
         position = position,
         direction = direction,
@@ -308,6 +310,7 @@ spawn_arrow :: (position: Vector2, direction: Vector2, charge: int) {
         speed = speed,
         max_distance = dist,
         sprite = .{
+            rotation = rotation,
             texture = *arrow_texture,
         },
     };
@@ -416,7 +419,7 @@ move_arrow :: () {
     dist := distance(arrow.position, arrow.position + vel);
     arrow.position += vel;
     arrow.distance += dist;
-    
+
     for enemies {
         if it.hit continue;
         min_distance := arrow.collider.radius + it.collider.radius;

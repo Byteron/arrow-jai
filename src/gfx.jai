@@ -19,7 +19,7 @@ render_collider :: (position: Vector2, using collider: Collider) {
 }
 
 render_sprite :: (position: Vector2, using sprite: Sprite) {
-    size := Vector2.{cast(float)texture.width, cast(float)texture.height};
+    size := Vector2.{xx texture.width, xx texture.height};
 
     if clip_to_region size = region.size;
     
@@ -81,11 +81,13 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
     v2 := Vector2.{pos.x + size.x, pos.y + size.y};
     v3 := Vector2.{pos.x, pos.y + size.y};
 
-    v0 = rotate(v0 - position, rotation) + position;
-    v1 = rotate(v1 - position, rotation) + position;
-    v2 = rotate(v2 - position, rotation) + position;
-    v3 = rotate(v3 - position, rotation) + position;
-
+    offset_pos := pos + center_offset;
+    
+    v0 = rotate(v0 - offset_pos, rotation) + offset_pos;
+    v1 = rotate(v1 - offset_pos, rotation) + offset_pos;
+    v2 = rotate(v2 - offset_pos, rotation) + offset_pos;
+    v3 = rotate(v3 - offset_pos, rotation) + offset_pos;
+    
     immediate_quad(v0, v1, v2, v3, uv0 = uv0, uv1 = uv1, uv2 = uv2, uv3 = uv3);
     immediate_flush();
 }

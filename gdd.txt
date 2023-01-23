@@ -21,7 +21,7 @@ TODO
 - [x] Arrow travel distance
 - [x] Arrow hit limit
 - [x] collect arrow
-- [ ] propper arrow rotation
+- [x] propper arrow rotation
 - [ ] arrow impact lerp
 - [ ] Sprite Sheet Animations
 - [ ] Directional Animations, if we want that
