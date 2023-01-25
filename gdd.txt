@@ -22,10 +22,10 @@ TODO
 - [x] Arrow hit limit
 - [x] collect arrow
 - [x] propper arrow rotation
+- [ ] death particles
 - [ ] arrow impact lerp
 - [ ] Sprite Sheet Animations
 - [ ] Directional Animations, if we want that
-- [ ] death particles
 
 GAME DESIGN
 - Arena Twin-Stick Shooter

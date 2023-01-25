@@ -1,3 +1,6 @@
+WAV :: "wav";
+OGG :: "ogg";
+
 update_sound_player :: (delta: float) {
     //
     // Move sound streams forward by dt.

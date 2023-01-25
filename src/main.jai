@@ -3,26 +3,6 @@
     Reimplementation of the GMTK 2019 Game Jam Entry of the same name.
 */
 
-#import "Basic";
-#import "Math";
-#import "Window_Creation";
-#import "System";
-#import "File";
-#import "String";
-#import "GL";
-#import "Simp";
-#import "Input";
-#import "Random";
-#import "Wav_File";
-#import "Sound_Player";
-#import "Thread";
-
-#load "sfx.jai";
-#load "gfx.jai";
-
-WAV :: "wav";
-OGG :: "ogg";
-
 W :: 87;
 A :: 65;
 S :: 83;
@@ -42,8 +22,6 @@ ARENA_HEIGHT :: 30;
 PLAYER_SPEED :: 240.0;
 CHARGE_LIMIT :: 3;
 
-sound_bow_charge: [..]*Mixer_Sound_Data;
-
 sound_player: *Sound_Player;
 
 delta: float;
@@ -60,14 +38,6 @@ aiming: int;
 charge_time := 1.0;
 charge := 1;
 prev_charge := 0;
-
-arrow_texture: Texture;
-player_body_texture: Texture;
-player_legs_texture: Texture;
-enemy_texture: Texture;
-tile_texture: Texture;
-heart_texture: Texture;
-crosshair_texture: Texture;
 
 Rect2 :: struct {
     position: Vector2;
@@ -264,6 +234,14 @@ main :: () {
     }
 }
 
+arrow_texture: Texture;
+player_body_texture: Texture;
+player_legs_texture: Texture;
+enemy_texture: Texture;
+tile_texture: Texture;
+heart_texture: Texture;
+crosshair_texture: Texture;
+
 init_textures :: () {
     arrow_texture = load_texture("assets/images/arrow.png");
     player_body_texture = load_texture("assets/images/mc-body.png");
@@ -273,6 +251,9 @@ init_textures :: () {
     heart_texture = load_texture("assets/images/heart.png");
     crosshair_texture = load_texture("assets/images/crosshair.png");
 }
+
+
+sound_bow_charge: [..]*Mixer_Sound_Data;
 
 init_sounds :: () {
     sound_bow_charge_1 := load_sound("assets/sfx/bow_charge_1.wav");
@@ -463,3 +444,20 @@ move_enemies :: () {
         it.position += direction * it.speed * delta;
     }
 }
+
+#import "Basic";
+#import "Math";
+#import "Window_Creation";
+#import "System";
+#import "File";
+#import "String";
+#import "GL";
+#import "Simp";
+#import "Input";
+#import "Random";
+#import "Wav_File";
+#import "Sound_Player";
+#import "Thread";
+
+#load "sfx.jai";
+#load "gfx.jai";
