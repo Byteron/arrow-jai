@@ -201,6 +201,7 @@ main :: () {
         move_crosshair();
         move_camera();
         move_enemies();
+        update_enemy_spawn();
         
         update_sound_player(delta);
 
@@ -241,6 +242,7 @@ enemy_texture: Texture;
 tile_texture: Texture;
 heart_texture: Texture;
 crosshair_texture: Texture;
+enemy_death_texture: Texture;
 
 init_textures :: () {
     arrow_texture = load_texture("assets/images/arrow.png");
@@ -250,8 +252,8 @@ init_textures :: () {
     tile_texture = load_texture("assets/images/tiles.png");
     heart_texture = load_texture("assets/images/heart.png");
     crosshair_texture = load_texture("assets/images/crosshair.png");
+    enemy_death_texture = load_texture("assets/images/enemy_death.png");
 }
-
 
 sound_bow_charge: [..]*Mixer_Sound_Data;
 
@@ -298,6 +300,7 @@ spawn_arrow :: (position: Vector2, direction: Vector2, charge: int) {
 }
 
 spawn_enemy :: (x: float, y: float) {
+    log("spawn enemy");
     health := floor(random_get_within_range(1, 4));
     speed := floor(random_get_within_range(50, 160));
     
@@ -442,6 +445,24 @@ move_enemies :: () {
         }
         
         it.position += direction * it.speed * delta;
+    }
+}
+
+ENEMY_LIMIT :: 8;
+ENEMY_SPAWN_TIME :: 4;
+
+spawn_time := 0.0;
+
+update_enemy_spawn :: () {
+    spawn_time += delta;
+    if spawn_time > ENEMY_SPAWN_TIME {
+        log("spawn tick");
+        spawn_time -= ENEMY_SPAWN_TIME;
+        if enemies.count >= ENEMY_LIMIT return;
+
+        x := random_get_within_range(0, TILE_SIZE * ARENA_WIDTH);
+        y := random_get_within_range(0, TILE_SIZE * ARENA_HEIGHT);
+        spawn_enemy(x, y);
     }
 }
 

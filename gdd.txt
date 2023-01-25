@@ -22,6 +22,9 @@ TODO
 - [x] Arrow hit limit
 - [x] collect arrow
 - [x] propper arrow rotation
+- [ ] Player Death
+- [x] Enemy Respawn
+- [ ] Score System
 - [ ] death particles
 - [ ] arrow impact lerp
 - [ ] Sprite Sheet Animations
