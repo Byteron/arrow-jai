@@ -49,20 +49,6 @@ Entity :: struct {
     using sprite: Sprite;
 }
 
-Sprite :: struct {
-    texture: *Texture;
-    offset := Vector2.{0, 0};
-    centered := true;
-    rotation := 0.0;
-
-    clip_to_region := false;
-    region: Rect2;
-    
-    h_frames := 0;
-    v_frames := 0;
-    frame := 0;
-}
-
 Collider :: struct {
     radius := 16.0;
 }
@@ -202,6 +188,7 @@ main :: () {
         move_camera();
         move_enemies();
         update_enemy_spawn();
+        simulate_death_particles();
         
         update_sound_player(delta);
 
@@ -215,6 +202,8 @@ main :: () {
         
         render_sprite(player.position, player.legs_sprite);
         render_sprite(player.position, player.sprite);
+
+        for death_particles render_sprite(it.position, it.sprite);
         
         if arrow render_sprite(arrow.position, arrow.sprite);
         
@@ -350,6 +339,47 @@ spawn_player :: (x: float, y: float) {
     };
 }
 
+DEATH_PARTICLE_FRAME_TIME :: 0.1;
+
+Death_Particle :: struct {
+    using position: Vector2;
+    using sprite: Sprite;
+    time: float;
+}
+
+death_particles: [..]*Death_Particle;
+
+spawn_death_particle :: (x: float, y: float) {
+    particle := New(Death_Particle);
+    <<particle = Death_Particle.{
+        x = x,
+        y = y,
+        sprite = .{
+            texture = *enemy_death_texture,
+            h_frames = 9,
+        }
+    };
+
+    array_add(*death_particles, particle);
+}
+
+
+simulate_death_particles :: () {
+    for death_particles {
+        it.time += delta;
+
+        if it.time > DEATH_PARTICLE_FRAME_TIME {
+            it.time -= DEATH_PARTICLE_FRAME_TIME;
+            it.frame += 1;
+        }
+
+        if it.frame == it.h_frames {
+            remove it;
+            free(it);
+        }
+    }    
+}
+
 damage_enemy :: (using enemy: *Enemy, damage: int) {
     hit = true;
     prev_health := health;
@@ -358,6 +388,7 @@ damage_enemy :: (using enemy: *Enemy, damage: int) {
     print("Health: %\n", health);
     
     if health == 0 {
+        spawn_death_particle(x, y);
         array_unordered_remove_by_value(*enemies, enemy);
         free(enemy);
     } else {

@@ -25,7 +25,7 @@ TODO
 - [ ] Player Death
 - [x] Enemy Respawn
 - [ ] Score System
-- [ ] death particles
+- [x] death particles
 - [ ] arrow impact lerp
 - [ ] Sprite Sheet Animations
 - [ ] Directional Animations, if we want that

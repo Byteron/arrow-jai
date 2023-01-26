@@ -1,3 +1,17 @@
+Sprite :: struct {
+    texture: *Texture;
+    offset := Vector2.{0, 0};
+    centered := true;
+    rotation := 0.0;
+
+    clip_to_region := false;
+    region: Rect2;
+    
+    h_frames := 1;
+    v_frames := 1;
+    frame := 0;
+}
+
 render_collider :: (position: Vector2, using collider: Collider) {
     set_shader_for_color();
     immediate_begin();
@@ -23,7 +37,7 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
 
     if clip_to_region size = region.size;
     
-    if h_frames > 0 || v_frames > 0 {
+    if h_frames > 1 || v_frames > 1 {
         width := size.x / h_frames;
         height := size.y / v_frames;
         size = Vector2.{cast(float)width, cast(float)height};
@@ -53,7 +67,7 @@ render_sprite :: (position: Vector2, using sprite: Sprite) {
         uv3 = Vector2.{x0, y1};
     } 
     
-    if h_frames > 0 || v_frames > 0 {
+    if h_frames > 1 || v_frames > 1 {
         width := texture.width / h_frames;
         height := texture.height / v_frames;
 
