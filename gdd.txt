@@ -16,7 +16,7 @@ TODO
 - [x] Collision Detection
     - [x] Arrow Enemy
     - [x] Player Enemy
-    - [ ] Arrow / Entity Wall
+    - [x] Arrow / Entity Wall
 - [x] Kill Entities on Health 0
 - [x] Arrow travel distance
 - [x] Arrow hit limit
