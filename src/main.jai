@@ -444,11 +444,20 @@ move_arrow :: () {
         }
     }
 
-    if arrow.distance > arrow.max_distance || arrow.hits == arrow.charge {
+    drop_arrow :: () {
         arrow.speed = 0;
         arrow.dropped = true;
         arrow.hits = 0;
     }
+    
+    if arrow.distance > arrow.max_distance || arrow.hits == arrow.charge drop_arrow();
+
+    in_arena := arrow.x > TILE_SIZE;
+    in_arena &= arrow.x < ARENA_WIDTH * TILE_SIZE - TILE_SIZE;
+    in_arena &= arrow.y > TILE_SIZE;
+    in_arena &= arrow.y < ARENA_HEIGHT * TILE_SIZE - TILE_SIZE;
+
+    if !in_arena drop_arrow();
 }
 
 move_crosshair :: () {
